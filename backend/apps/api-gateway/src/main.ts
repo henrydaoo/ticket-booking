@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { config as loadDotenv } from 'dotenv';
 import { AuthController } from './auth.controller';
+import { CatalogController } from './catalog.controller';
 import { GATEWAY_CONFIG, loadGatewayConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
 import { HealthController } from './health.controller';
@@ -11,7 +12,7 @@ import { HealthController } from './health.controller';
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [AuthController, HealthController],
+  controllers: [AuthController, CatalogController, HealthController],
   providers: [
     {
       provide: GATEWAY_CONFIG,

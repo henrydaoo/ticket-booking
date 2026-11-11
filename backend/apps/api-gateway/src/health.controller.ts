@@ -18,13 +18,18 @@ export class HealthController {
   @Get('ready')
   async ready(): Promise<{ status: 'ready'; service: string }> {
     try {
-      const response = await fetch(`${this.config.identityServiceUrl}/health`);
+      const responses = await Promise.all([
+        fetch(`${this.config.identityServiceUrl}/health`),
+        fetch(`${this.config.catalogServiceUrl}/health`),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`Identity Service returned HTTP ${response.status}`);
+      for (const response of responses) {
+        if (!response.ok) {
+          throw new Error(`Downstream service returned HTTP ${response.status}`);
+        }
       }
     } catch (error) {
-      throw new ServiceUnavailableException('Identity Service is not ready', {
+      throw new ServiceUnavailableException('A downstream service is not ready', {
         cause: error,
       });
     }

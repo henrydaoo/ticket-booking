@@ -3,6 +3,7 @@ import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
 export type GatewayConfig = ServiceConfig & {
   identityServiceUrl: string;
   identityJwksUrl: string;
+  catalogServiceUrl: string;
   jwtIssuer: string;
   jwtAudience: string;
 };
@@ -32,6 +33,10 @@ export function loadGatewayConfig(
       '',
     ),
     identityJwksUrl: requiredEnvironment(environment, 'IDENTITY_JWKS_URL'),
+    catalogServiceUrl: requiredEnvironment(environment, 'CATALOG_SERVICE_URL').replace(
+      /\/+$/,
+      '',
+    ),
     jwtIssuer: requiredEnvironment(environment, 'JWT_ISSUER'),
     jwtAudience: requiredEnvironment(environment, 'JWT_AUDIENCE'),
   };

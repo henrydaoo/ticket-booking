@@ -1,0 +1,17 @@
+{
+  "name": "@ticket-booking/backend",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\"",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.0",
+    "jest": "^29.7.0",
+    "typescript": "^5.8.0"
+  }
+}

@@ -1,0 +1,14 @@
+# Local environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local database and broker data
+data/
+volumes/
+
+# Logs
+*.log
+logs/
+

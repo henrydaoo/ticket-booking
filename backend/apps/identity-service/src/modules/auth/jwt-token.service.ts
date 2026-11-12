@@ -47,7 +47,9 @@ export class JwtTokenService {
       exp: issuedAt + this.config.accessTokenTtlSeconds,
       jti: randomUUID(),
     };
-    const encodedHeader = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    const encodedHeader = base64Url(
+      JSON.stringify({ alg: 'RS256', typ: 'JWT', kid: this.config.jwtKeyId }),
+    );
     const encodedPayload = base64Url(JSON.stringify(payload));
     const signingInput = `${encodedHeader}.${encodedPayload}`;
     const signature = sign('RSA-SHA256', Buffer.from(signingInput), this.privateKey);
@@ -74,6 +76,7 @@ export class JwtTokenService {
           e: String(jwk.e),
           alg: 'RS256',
           use: 'sig',
+          kid: this.config.jwtKeyId,
         },
       ],
     };

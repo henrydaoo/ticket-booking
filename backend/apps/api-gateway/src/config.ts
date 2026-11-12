@@ -6,6 +6,9 @@ export type GatewayConfig = ServiceConfig & {
   catalogServiceUrl: string;
   jwtIssuer: string;
   jwtAudience: string;
+  jwksCacheTtlSeconds: number;
+  rateLimitWindowSeconds: number;
+  rateLimitMaxRequests: number;
 };
 
 export const GATEWAY_CONFIG = Symbol('GATEWAY_CONFIG');
@@ -20,6 +23,20 @@ function requiredEnvironment(
     throw new Error(`Missing required environment variable: ${name}`);
   }
 
+  return value;
+}
+
+function positiveIntegerEnvironment(
+  environment: NodeJS.ProcessEnv,
+  name: string,
+  defaultValue: number,
+): number {
+  const rawValue = environment[name]?.trim();
+  const value = rawValue ? Number(rawValue) : defaultValue;
+
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
   return value;
 }
 
@@ -39,6 +56,17 @@ export function loadGatewayConfig(
     ),
     jwtIssuer: requiredEnvironment(environment, 'JWT_ISSUER'),
     jwtAudience: requiredEnvironment(environment, 'JWT_AUDIENCE'),
+    jwksCacheTtlSeconds: positiveIntegerEnvironment(environment, 'JWKS_CACHE_TTL_SECONDS', 300),
+    rateLimitWindowSeconds: positiveIntegerEnvironment(
+      environment,
+      'AUTH_RATE_LIMIT_WINDOW_SECONDS',
+      60,
+    ),
+    rateLimitMaxRequests: positiveIntegerEnvironment(
+      environment,
+      'AUTH_RATE_LIMIT_MAX_REQUESTS',
+      30,
+    ),
   };
 }
 

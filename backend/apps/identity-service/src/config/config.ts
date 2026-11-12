@@ -4,6 +4,7 @@ export type IdentityConfig = ServiceConfig & {
   databaseUrl: string;
   jwtIssuer: string;
   jwtAudience: string;
+  jwtKeyId: string;
   jwtPrivateKeyPath: string;
   jwtPublicKeyPath: string;
   emailLinkBaseUrl: string;
@@ -61,6 +62,7 @@ export function loadIdentityConfig(
     databaseUrl: requiredEnvironment(environment, 'DATABASE_URL'),
     jwtIssuer: requiredEnvironment(environment, 'JWT_ISSUER'),
     jwtAudience: requiredEnvironment(environment, 'JWT_AUDIENCE'),
+    jwtKeyId: requiredEnvironment(environment, 'JWT_KEY_ID'),
     jwtPrivateKeyPath: requiredEnvironment(environment, 'JWT_PRIVATE_KEY_PATH'),
     jwtPublicKeyPath: requiredEnvironment(environment, 'JWT_PUBLIC_KEY_PATH'),
     emailLinkBaseUrl: emailLinkBaseUrl(environment),

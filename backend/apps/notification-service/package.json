@@ -1,5 +1,28 @@
 {
   "name": "@ticket-booking/notification-service",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "migrate": "node scripts/migrate.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@ticket-booking/config": "workspace:*",
+    "dotenv": "^16.4.7",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.13.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.8.0"
+  }
 }

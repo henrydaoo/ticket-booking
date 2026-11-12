@@ -26,6 +26,8 @@ logs/
 docs/*
 !docs/development/
 !docs/development/**
+!docs/project-r1-plan.md
+!docs/r1-contracts.md
 !docs/development/
 !docs/development/**
 

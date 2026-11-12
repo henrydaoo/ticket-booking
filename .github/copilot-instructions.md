@@ -3,10 +3,17 @@
 
 This project is a Cinema Ticket Booking System.
 
-The initial business requirements and proposed architecture are documented in:
-- `docs/requirements/system-overview.md`
+The source-of-truth documents are:
 
-Always read the relevant project documentation before working on a task.
+- `docs/requirements/system-overview.md`
+- `docs/requirements/requirements-specification.md`
+- `docs/architecture/system-architecture.md`
+- `docs/project-roadmap.md`
+- The applicable release plan and approved contracts in `docs/`
+
+Read the relevant documents before working on a task. Do not copy their
+business requirements into new guidance files; refer to them instead.
+If source-of-truth documents conflict, do not choose one arbitrarily. Identify the conflicting statements, explain their impact, and ask for clarification before proceeding.
 
 # Development Workflow
 
@@ -18,17 +25,25 @@ Always read the relevant project documentation before working on a task.
 - Do not expand the scope beyond the approved task.
 - Do not automatically proceed to the next task.
 - Ask questions when requirements are ambiguous instead of making assumptions.
+- Distinguish confirmed requirements, approved architecture, implementation
+  choices, assumptions, and open questions.
+- Validate the actual acceptance criteria, not a proxy for them.
 
 # Engineering Principles
 
 - Do not invent business requirements.
-- Do not make architectural decisions without explaining their trade-offs and getting approval.
+- Do not introduce or change architectural decisions without explaining their trade-offs and obtaining explicit approval.
+- Make implementation-level decisions within the approved requirements and architecture, following existing codebase conventions.
+- If an implementation choice affects requirements, architecture, contracts, or the approved scope, explain the impact and ask for approval.
 - Do not design the entire database schema upfront.
 - Design database changes, APIs, and components incrementally based on the current feature.
 - Avoid unnecessary abstractions, dependencies, and premature optimization.
 - Follow established conventions and patterns in the existing codebase.
 - Keep code modular, readable, maintainable, and testable.
 - Preserve existing code and user changes.
+- Prefer correctness and explicit boundaries over adding technology.
+- Do not add infrastructure, abstractions, caching, retries, or shared packages
+  without a concrete requirement and an explained reason.
 
 # Testing
 
@@ -37,6 +52,8 @@ Always read the relevant project documentation before working on a task.
 - Fix test failures before considering the task complete.
 - Do not postpone all testing until the end of development.
 - Do not claim tests pass unless they have actually been executed.
+- Test business behavior, state transitions, data integrity, security
+  boundaries, concurrency, and failure scenarios where applicable.
 
 # Code Review
 
@@ -46,6 +63,9 @@ After implementation:
 - Report tests executed and their results.
 - Identify potential issues or remaining work.
 - Wait for user review before proceeding.
+- Review requirements compliance, business correctness, data integrity,
+  architecture, security, error handling, contracts, testing, performance,
+  and maintainability.
 
 # Git Rules
 

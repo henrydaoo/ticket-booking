@@ -1,0 +1,14 @@
+{
+  "verificationMessage": {
+    "messageId": "email-r1-verification-001",
+    "recipient": "customer.r1@example.test",
+    "verificationLink": "http://localhost:3000/verify-email?token=local-r1-verification-token",
+    "expiresAt": "2030-01-01T01:00:00Z"
+  },
+  "passwordResetMessage": {
+    "messageId": "email-r1-reset-001",
+    "recipient": "customer.r1@example.test",
+    "resetLink": "http://localhost:3000/reset-password?token=local-r1-reset-token",
+    "expiresAt": "2030-01-01T01:00:00Z"
+  }
+}

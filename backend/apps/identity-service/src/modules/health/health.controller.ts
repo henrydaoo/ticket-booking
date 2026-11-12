@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Pool } from 'pg';
-import { IDENTITY_CONFIG, IdentityConfig } from './config';
+import { IDENTITY_CONFIG, IdentityConfig } from '../../config/config';
 
 @Controller()
 export class HealthController {
@@ -32,4 +32,3 @@ export class HealthController {
     return { status: 'ready', service: this.config.serviceName };
   }
 }
-

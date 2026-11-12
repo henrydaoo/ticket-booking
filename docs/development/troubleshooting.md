@@ -79,3 +79,18 @@ pnpm run build
 ```
 
 The foundation test and build commands are designed to run without infrastructure. Start Docker only for checks that explicitly need runtime dependencies.
+
+## Backend cannot resolve `@ticket-booking/config`
+
+The shared configuration package must be built before backend type-checking and
+service builds. Run the workspace CI command from `backend/`; it performs this
+bootstrap automatically:
+
+```powershell
+Set-Location D:\beandrew\developer\ticket-booking\backend
+pnpm run build:config
+pnpm run ci
+```
+
+Do not commit generated `dist/` output. A clean checkout must regenerate the
+configuration package and each service's build output during CI.

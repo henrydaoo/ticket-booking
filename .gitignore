@@ -23,7 +23,11 @@ coverage/
 logs/
 
 # Documentation
-docs/
+docs/*
+!docs/development/
+!docs/development/**
+!docs/development/
+!docs/development/**
 
 # Local tooling
 .cache/

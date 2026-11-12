@@ -1,0 +1,25 @@
+{
+  "name": "@ticket-booking/backend",
+  "private": true,
+  "scripts": {
+    "build": "pnpm run build:config && pnpm run build:apps",
+    "build:config": "pnpm --filter @ticket-booking/config run build",
+    "build:apps": "pnpm --filter \"./apps/*\" run build",
+    "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\"",
+    "test": "pnpm run build && pnpm run test:unit",
+    "test:unit": "node --test \"apps/*/test/*.test.js\" \"packages/*/test/*.test.js\"",
+    "typecheck": "tsc --noEmit",
+    "verify:services": "node scripts/verify-services.mjs",
+    "ci": "pnpm run lint && pnpm run build:config && pnpm run typecheck && pnpm run verify:services && pnpm run build && pnpm run test:unit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@nestjs/cli": "^11.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

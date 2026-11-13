@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.{test,spec}.{ts,tsx,js}"
+applyTo: "**/*.{test,spec,integration}.{ts,tsx,js,jsx}"
 ---
 
 # Testing guidance
@@ -16,6 +16,14 @@ applyTo: "**/*.{test,spec}.{ts,tsx,js}"
   infrastructure unless the test is explicitly an integration test.
 - Use controlled infrastructure for integration tests and document the exact
   command and working directory.
+- Name and organize tests by behavior or focused scenario. Make independent
+  cases independently runnable with their own state; retain multi-step tests
+  when the lifecycle itself is the behavior under test.
+- Use isolated test-owned data and infrastructure, and clean up only resources
+  created by the test. Verify the database target before migrations or tests;
+  never silently fall back to a shared or application database.
+- Ensure failure injection and background workers cannot affect unrelated
+  test cases, pending events, or shared infrastructure.
 - Prefer behavior assertions over implementation-detail assertions.
 - Do not claim coverage of an acceptance criterion without an executable test
   or other explicit validation evidence.

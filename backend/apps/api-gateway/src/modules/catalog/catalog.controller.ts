@@ -20,6 +20,39 @@ export class CatalogController {
     return this.proxy.forward('/movies', correlationId);
   }
 
+  @Get('showtimes')
+  showtimes(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const queryIndex = request.originalUrl.indexOf('?');
+    const query = queryIndex < 0 ? '' : request.originalUrl.slice(queryIndex);
+    return this.proxy.forward(`/showtimes${query}`, correlationId);
+  }
+
+  @Get('showtimes/drafts')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRoles('CINEMA_MANAGER', 'PLATFORM_ADMIN')
+  draftShowtimes(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      '/showtimes/drafts',
+      correlationId,
+      principalFromRequest(request),
+    );
+  }
+
+  @Get('showtimes/:showtimeId')
+  showtime(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const showtimeId = request.params.showtimeId;
+    return this.proxy.forward(`/showtimes/${showtimeId}`, correlationId);
+  }
+
   @Post('movies')
   @UseGuards(AuthGuard, RolesGuard)
   @RequireRoles('PLATFORM_ADMIN')
@@ -124,6 +157,77 @@ export class CatalogController {
       correlationId,
       principalFromRequest(request),
       'PUT',
+      body,
+    );
+  }
+
+  @Put('screens/:screenId/prices')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRoles('CINEMA_MANAGER', 'PLATFORM_ADMIN')
+  updateScreenPrices(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const screenId = request.params.screenId;
+    return this.proxy.forward(
+      `/screens/${screenId}/prices`,
+      correlationId,
+      principalFromRequest(request),
+      'PUT',
+      body,
+    );
+  }
+
+  @Post('showtimes')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRoles('CINEMA_MANAGER', 'PLATFORM_ADMIN')
+  createShowtime(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      '/showtimes',
+      correlationId,
+      principalFromRequest(request),
+      'POST',
+      body,
+    );
+  }
+
+  @Patch('showtimes/:showtimeId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRoles('CINEMA_MANAGER', 'PLATFORM_ADMIN')
+  updateDraftShowtime(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const showtimeId = request.params.showtimeId;
+    return this.proxy.forward(
+      `/showtimes/${showtimeId}`,
+      correlationId,
+      principalFromRequest(request),
+      'PATCH',
+      body,
+    );
+  }
+
+  @Post('showtimes/:showtimeId/publish')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequireRoles('CINEMA_MANAGER', 'PLATFORM_ADMIN')
+  publishShowtime(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const showtimeId = request.params.showtimeId;
+    return this.proxy.forward(
+      `/showtimes/${showtimeId}/publish`,
+      correlationId,
+      principalFromRequest(request),
+      'POST',
       body,
     );
   }

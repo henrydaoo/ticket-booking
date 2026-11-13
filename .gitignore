@@ -22,14 +22,8 @@ coverage/
 *.log
 logs/
 
-# Documentation
-docs/*
-!docs/development/
-!docs/development/**
-!docs/project-r1-plan.md
-!docs/r1-contracts.md
-!docs/development/
-!docs/development/**
+# Local-only documentation (all project docs stay local, not pushed)
+docs/
 
 # Local tooling
 .cache/

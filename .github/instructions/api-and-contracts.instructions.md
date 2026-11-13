@@ -14,4 +14,7 @@ applyTo: "**/*.{ts,tsx,js,json,md}"
 - Do not expose service-internal database fields through public responses.
 - Use versioning or an approved contract change process when compatibility is
   affected; do not silently change existing behavior.
+- When refactoring, verify that routes, status codes, response and error shapes,
+  authorization, and event contracts remain unchanged unless a contract change
+  has been explicitly approved.
 - Do not create an API endpoint or event merely because it may be useful later.

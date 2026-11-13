@@ -21,3 +21,8 @@ applyTo: "**/*.{sql,ts,js}"
 - Integration tests may require controlled infrastructure, but builds,
   type-checks, unit tests, and static validation must not require a running
   database.
+- Run database integration tests and their migrations only against a verified,
+  isolated test database. Fail explicitly when the test target is missing or
+  cannot be verified; do not silently fall back to an application database.
+- Limit test writes, cleanup, injected failures, and background processing to
+  test-owned resources. Do not alter unrelated data or shared database objects.

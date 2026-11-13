@@ -1,18 +1,33 @@
+---
+name: feature-implementation
+description: Plan, implement, review, and validate an approved project feature or work package within its documented scope.
+---
+
 # Feature implementation skill
 
 Use this workflow for an approved feature or work package:
 
 1. Understand the requirement using the project-context workflow.
-2. Present a bounded implementation plan listing affected files,
-   responsibilities, contracts, data changes, edge cases, and tests.
-3. Wait for explicit approval if the task is not already approved.
+2. Present a bounded implementation plan listing affected files, feature-module
+   responsibilities and dependencies, contracts, data and transaction
+   boundaries, edge cases, test isolation, manual verification, and validation.
+   Explain the purpose of each affected file group.
+3. Wait for explicit approval of the implementation plan before modifying
+   files or updating task status. Approval of the task alone is not approval of
+   the plan or of a commit. If the implementation record does not exist,
+   propose its initial creation in chat before creating it.
 4. Inspect existing patterns before adding abstractions or dependencies.
-5. Implement the smallest complete change within the approved scope.
+5. Implement the smallest reviewable behavior within the approved scope.
+   Preserve coupled invariants and do not expose unsafe intermediate behavior.
 6. Review dependency direction, ownership, validation, error handling,
    security, and failure behavior before testing.
-7. Run targeted validation, then the smallest relevant project-level checks.
+7. Run targeted validation and acceptance-required checks; do not automatically
+   run full CI after each task. Re-run checks affected by later changes.
 8. Compare every acceptance criterion with concrete evidence.
-9. Report files changed, decisions, commands with working directories, results,
-   and remaining risks.
+9. Perform an AI self-review, then report files changed, findings, decisions,
+   commands with working directories, environments, results, and remaining
+   risks. Record Passed, Failed, Not Run or Blocked. For required manual API
+   checks prepare REST Client requests with safe environment and cleanup
+   instructions. Do not record commit hashes in implementation plans.
 
 Do not silently begin the next work package after completion.

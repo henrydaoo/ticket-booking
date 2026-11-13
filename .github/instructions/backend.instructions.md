@@ -5,6 +5,13 @@ applyTo: "backend/**/*.ts,backend/**/*.js,backend/**/*.json"
 # Backend guidance
 
 - Use NestJS modules organized around business capabilities.
+- Keep distinct capabilities in cohesive feature modules with focused
+  controllers, services, repositories, and DTOs. Do not group unrelated
+  capabilities solely because they belong to the same service, or create a
+  module for every database table.
+- Explain module responsibilities, dependencies, and any shared transaction
+  boundaries in the implementation plan. Preserve atomicity and locking when
+  code is split across modules.
 - Keep controllers focused on transport concerns: DTO binding, validation,
   authentication context, and response mapping.
 - Keep business rules in application services or domain-focused components.

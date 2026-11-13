@@ -1,22 +1,21 @@
 import { Module } from '@nestjs/common';
-import { Kafka } from 'kafkajs';
 import { HealthController } from './health.controller';
-import { CATALOG_CONFIG, CatalogConfig } from './config';
-import { CatalogModule } from './modules/catalog/catalog.module';
+import { DatabaseModule } from './infrastructure/database/database.module';
+import { CinemasModule } from './modules/cinemas/cinemas.module';
+import { MoviesModule } from './modules/movies/movies.module';
+import { ScreensModule } from './modules/screens/screens.module';
+import { CatalogOutboxModule } from './modules/showtimes/outbox/catalog-outbox.module';
+import { ShowtimesModule } from './modules/showtimes/showtimes.module';
 
 @Module({
-  imports: [CatalogModule],
-  controllers: [HealthController],
-  providers: [
-    {
-      provide: Kafka,
-      useFactory: (config: CatalogConfig) =>
-        new Kafka({
-          clientId: config.kafkaClientId,
-          brokers: config.kafkaBrokers,
-        }),
-      inject: [CATALOG_CONFIG],
-    },
+  imports: [
+    DatabaseModule,
+    MoviesModule,
+    CinemasModule,
+    ScreensModule,
+    ShowtimesModule,
+    CatalogOutboxModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

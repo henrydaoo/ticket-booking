@@ -63,6 +63,7 @@
     {
       "id": "showtime-r1-open-001",
       "movieId": "movie-now-showing-001",
+      "movieStatus": "NOW_SHOWING",
       "branchId": "branch-r1-hcm-001",
       "screenId": "screen-r1-001",
       "startAt": "2030-01-15T12:00:00Z",
@@ -71,11 +72,25 @@
       "reservationCutoffAt": "2030-01-15T11:45:00Z",
       "status": "PUBLISHED",
       "discoveryVisible": true,
-      "bookingEligible": true
+      "bookingEligible": true,
+      "pricingVersion": 1,
+      "layoutVersion": 1,
+      "prices": {
+        "STANDARD": 90000,
+        "VIP": 120000,
+        "COUPLE": 180000
+      },
+      "seats": [
+        { "id": "seat-r1-a1", "label": "A1", "type": "STANDARD", "row": "A", "number": 1 },
+        { "id": "seat-r1-a2", "label": "A2", "type": "STANDARD", "row": "A", "number": 2 },
+        { "id": "seat-r1-b1", "label": "B1", "type": "VIP", "row": "B", "number": 1 },
+        { "id": "seat-r1-b2", "label": "B2", "type": "COUPLE", "row": "B", "number": 2 }
+      ]
     },
     {
       "id": "showtime-r1-future-sale-001",
       "movieId": "movie-now-showing-001",
+      "movieStatus": "NOW_SHOWING",
       "branchId": "branch-r1-hcm-001",
       "screenId": "screen-r1-001",
       "startAt": "2030-01-16T12:00:00Z",
@@ -84,11 +99,25 @@
       "reservationCutoffAt": "2030-01-16T11:45:00Z",
       "status": "PUBLISHED",
       "discoveryVisible": true,
-      "bookingEligible": false
+      "bookingEligible": false,
+      "pricingVersion": 1,
+      "layoutVersion": 1,
+      "prices": {
+        "STANDARD": 90000,
+        "VIP": 120000,
+        "COUPLE": 180000
+      },
+      "seats": [
+        { "id": "seat-r1-a1", "label": "A1", "type": "STANDARD", "row": "A", "number": 1 },
+        { "id": "seat-r1-a2", "label": "A2", "type": "STANDARD", "row": "A", "number": 2 },
+        { "id": "seat-r1-b1", "label": "B1", "type": "VIP", "row": "B", "number": 1 },
+        { "id": "seat-r1-b2", "label": "B2", "type": "COUPLE", "row": "B", "number": 2 }
+      ]
     },
     {
       "id": "showtime-r1-draft-001",
       "movieId": "movie-now-showing-001",
+      "movieStatus": "NOW_SHOWING",
       "branchId": "branch-r1-hcm-001",
       "screenId": "screen-r1-001",
       "startAt": "2030-01-17T12:00:00Z",
@@ -97,7 +126,11 @@
       "reservationCutoffAt": "2030-01-17T11:45:00Z",
       "status": "DRAFT",
       "discoveryVisible": false,
-      "bookingEligible": false
+      "bookingEligible": false,
+      "pricingVersion": null,
+      "layoutVersion": null,
+      "prices": null,
+      "seats": null
     }
   ]
 }

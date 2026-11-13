@@ -1,105 +1,44 @@
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const test = require('node:test');
-const { config: loadDotenv } = require('dotenv');
-const { NestFactory } = require('@nestjs/core');
-const { ValidationPipe } = require('@nestjs/common');
-const { Pool } = require('pg');
-const { AppModule } = require('../dist/app.module.js');
+const {
+  adminHeaders,
+  cleanupFixture,
+  createFixture,
+  managerHeaders,
+  newFixture,
+  startCatalog,
+} = require('./catalog-test-support');
 
-loadDotenv({ path: path.join(__dirname, '../.env') });
+let context;
+let fixture;
 
-const adminHeaders = {
-  'content-type': 'application/json',
-  'x-authenticated-user-id': 'admin-r1',
-  'x-authenticated-roles': JSON.stringify(['PLATFORM_ADMIN']),
-  'x-authenticated-branch-ids': JSON.stringify([]),
-  'x-authenticated-mfa-completed': 'true',
-};
-
-const managerHeaders = (branchId) => ({
-  'content-type': 'application/json',
-  'x-authenticated-user-id': 'manager-r1',
-  'x-authenticated-roles': JSON.stringify(['CINEMA_MANAGER']),
-  'x-authenticated-branch-ids': JSON.stringify([branchId]),
-  'x-authenticated-mfa-completed': 'false',
+test.beforeEach(async () => {
+  context = await startCatalog();
+  fixture = newFixture();
+  await createFixture(context, fixture);
 });
 
-let app;
-let database;
-let baseUrl;
-let cinemaId;
-let branchId;
-let screenId;
-
-async function request(route, options = {}) {
-  const response = await fetch(`${baseUrl}${route}`, options);
-  const text = await response.text();
-  return {
-    status: response.status,
-    body: text ? JSON.parse(text) : undefined,
-  };
-}
-
-test.before(async () => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required for Catalog integration tests');
-  }
-  app = await NestFactory.create(AppModule, { logger: false });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      whitelist: true,
-    }),
-  );
-  await app.listen(0, '127.0.0.1');
-  const address = app.getHttpServer().address();
-  baseUrl = `http://127.0.0.1:${address.port}`;
-  database = app.get(Pool);
-});
-
-test.after(async () => {
-  if (database) {
-    await database.query('DELETE FROM screen_seat_type_prices');
-    await database.query('DELETE FROM screen_seats');
-    await database.query('DELETE FROM screens');
-    await database.query('DELETE FROM branches WHERE id = $1', [branchId]);
-    await database.query('DELETE FROM cinemas WHERE id = $1', [cinemaId]);
-    await database.query('DELETE FROM movies WHERE title = $1', ['R1 Integration Movie']);
-    await database.end();
-  }
-  if (app) {
-    await app.close();
+test.afterEach(async () => {
+  if (context) {
+    try {
+      await cleanupFixture(context, fixture);
+    } finally {
+      await context.close();
+      context = undefined;
+    }
   }
 });
 
-test('Catalog R1.3 supports discovery, management authorization, and layouts', async () => {
-  const movie = await request('/movies', {
+test('movie discovery filters the created movie by search and status', async () => {
+  const result = await context.request(`/movies?search=${fixture.tag}&status=NOW_SHOWING`);
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.map((movie) => movie.id), [fixture.movieId]);
+});
+
+test('movie management rejects a cinema manager without platform admin authority', async () => {
+  const result = await context.request('/movies', {
     method: 'POST',
-    headers: adminHeaders,
-    body: JSON.stringify({
-      title: 'R1 Integration Movie',
-      description: 'Catalog integration fixture',
-      durationMinutes: 120,
-      genre: 'DRAMA',
-      ageRating: 'T13',
-      posterUrl: 'https://example.test/movie.png',
-      trailerUrl: 'https://example.test/movie.mp4',
-      status: 'NOW_SHOWING',
-    }),
-  });
-  assert.equal(movie.status, 201);
-
-  const filtered = await request('/movies?search=Integration&status=NOW_SHOWING');
-  assert.equal(filtered.status, 200);
-  assert.equal(filtered.body.length, 1);
-
-  const forbiddenMovie = await request('/movies', {
-    method: 'POST',
-    headers: {
-      ...managerHeaders('00000000-0000-0000-0000-000000000001'),
-    },
+    headers: managerHeaders(fixture.branchId),
     body: JSON.stringify({
       title: 'Forbidden',
       description: 'Should not be created',
@@ -111,62 +50,54 @@ test('Catalog R1.3 supports discovery, management authorization, and layouts', a
       status: 'COMING_SOON',
     }),
   });
-  assert.equal(forbiddenMovie.status, 403);
+  assert.equal(result.status, 403);
+});
 
-  const cinema = await request('/cinemas', {
-    method: 'POST',
-    headers: adminHeaders,
-    body: JSON.stringify({ name: 'R1 Integration Cinema' }),
+test('platform admin must complete MFA for movie management', async () => {
+  const result = await context.request(`/movies/${fixture.movieId}`, {
+    method: 'PATCH',
+    headers: { ...adminHeaders, 'x-authenticated-mfa-completed': 'false' },
+    body: JSON.stringify({ title: 'Unauthorized update' }),
   });
-  assert.equal(cinema.status, 201);
-  cinemaId = cinema.body.id;
+  assert.equal(result.status, 403);
+});
 
-  const branch = await request('/branches', {
-    method: 'POST',
-    headers: adminHeaders,
-    body: JSON.stringify({
-      cinemaId,
-      name: 'R1 Integration Branch',
-      address: 'Test address',
-    }),
-  });
-  assert.equal(branch.status, 201);
-  branchId = branch.body.id;
-
-  const screen = await request('/screens', {
-    method: 'POST',
-    headers: managerHeaders(branchId),
-    body: JSON.stringify({ branchId, name: 'Screen 1', capacity: 2 }),
-  });
-  assert.equal(screen.status, 201);
-  screenId = screen.body.id;
-
-  const wrongBranch = await request('/screens', {
+test('screen management rejects a manager from another branch', async () => {
+  const result = await context.request('/screens', {
     method: 'POST',
     headers: managerHeaders('00000000-0000-0000-0000-000000000001'),
-    body: JSON.stringify({ branchId, name: 'Screen 2', capacity: 2 }),
+    body: JSON.stringify({ branchId: fixture.branchId, name: 'Other screen', capacity: 2 }),
   });
-  assert.equal(wrongBranch.status, 403);
+  assert.equal(result.status, 403);
+});
 
-  const layout = await request(`/screens/${screenId}/layout`, {
+test('layout changes require a seat count matching screen capacity', async () => {
+  const result = await context.request(`/screens/${fixture.screenId}/layout`, {
     method: 'PUT',
-    headers: managerHeaders(branchId),
-    body: JSON.stringify({
-      seats: [
-        { label: 'A1', type: 'STANDARD', row: 'A', number: 1 },
-        { label: 'A2', type: 'VIP', row: 'A', number: 2 },
-      ],
-    }),
-  });
-  assert.equal(layout.status, 200);
-  assert.equal(layout.body.layoutVersion, 2);
-
-  const invalidLayout = await request(`/screens/${screenId}/layout`, {
-    method: 'PUT',
-    headers: managerHeaders(branchId),
+    headers: managerHeaders(fixture.branchId),
     body: JSON.stringify({
       seats: [{ label: 'A1', type: 'STANDARD', row: 'A', number: 1 }],
     }),
   });
-  assert.equal(invalidLayout.status, 409);
+  assert.equal(result.status, 409);
+});
+
+test('fixture cleanup leaves other fixtures and their screen data intact', async () => {
+  const other = newFixture();
+  try {
+    await createFixture(context, other);
+    await cleanupFixture(context, fixture);
+    fixture = undefined;
+    const result = await context.database.query(
+      `SELECT
+         (SELECT COUNT(*) FROM movies WHERE id = $1) AS movies,
+         (SELECT COUNT(*) FROM screens WHERE id = $2) AS screens,
+         (SELECT COUNT(*) FROM screen_seats WHERE screen_id = $2) AS seats,
+         (SELECT COUNT(*) FROM screen_seat_type_prices WHERE screen_id = $2) AS prices`,
+      [other.movieId, other.screenId],
+    );
+    assert.deepEqual(result.rows[0], { movies: '1', screens: '1', seats: '2', prices: '2' });
+  } finally {
+    await cleanupFixture(context, other);
+  }
 });

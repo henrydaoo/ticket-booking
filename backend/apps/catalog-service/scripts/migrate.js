@@ -10,11 +10,19 @@ async function migrate() {
 
   await client.connect();
   try {
-    const migration = await fs.readFile(
-      path.join(__dirname, '../migrations/001-catalog.sql'),
-      'utf8',
-    );
-    await client.query(migration);
+    const migrationsDirectory = path.join(__dirname, '../migrations');
+    const migrationFiles = (await fs.readdir(migrationsDirectory))
+      .filter((file) => /^\d+.*\.sql$/.test(file))
+      .sort();
+
+    for (const migrationFile of migrationFiles) {
+      const migration = await fs.readFile(
+        path.join(migrationsDirectory, migrationFile),
+        'utf8',
+      );
+      await client.query(migration);
+    }
+
     console.log('Catalog migrations applied.');
   } finally {
     await client.end();

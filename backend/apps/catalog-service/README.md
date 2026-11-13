@@ -1,8 +1,18 @@
 # Catalog Service foundation
 
-Catalog Service is an independently startable NestJS application and the only service configured with `catalog_db` credentials. Foundation provides health/readiness endpoints, a no-op migration runner, correlation IDs, and Kafka client configuration.
+Catalog Service is an independently startable NestJS application and the only
+service configured with `catalog_db` credentials. R1.3 provides Catalog-owned
+movie, cinema, branch, screen, and physical layout management.
 
-Copy `.env.example` to `.env` before starting. Movie, cinema, screen, seat-layout, showtime, pricing, and event business behavior are deferred to R1 implementation.
+Copy `.env.example` to `.env`, apply the Catalog migration, and start the
+service:
 
-The Kafka client is constructed from validated configuration but does not connect or publish events during Foundation. Topic names and event contracts remain deferred.
+```powershell
+Set-Location D:\beandrew\developer\ticket-booking\backend\apps\catalog-service
+pnpm run migrate
+pnpm start
+```
+
+Showtime lifecycle, sale windows, schedule conflicts, publication, and Outbox
+behavior remain in R1.4.
 

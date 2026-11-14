@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PAYMENT_CONFIG, PaymentConfig } from '../config';
-import { PaymentCreation, PaymentProviderPort, PaymentCreationResult } from './payment-provider.port';
+import {
+  PaymentCreation,
+  PaymentProviderPort,
+  PaymentCreationResult,
+  PaymentQueryResult,
+  RefundCreation,
+  RefundCreationResult,
+} from './payment-provider.port';
 import { hasValidVnpaySignature, vnpaySignature } from './vnpay-signature';
 
 @Injectable()
@@ -56,6 +63,68 @@ export class VnpayProvider implements PaymentProviderPort {
       success: parameters.vnp_ResponseCode === '00' && parameters.vnp_TransactionStatus === '00',
       responseCode: parameters.vnp_ResponseCode || 'UNKNOWN',
     };
+  }
+
+  queryPayment(input: {
+      paymentId: string;
+      providerReference: string;
+      amountVnd: number;
+      transactionDate: Date;
+    }): Promise<PaymentQueryResult> {
+      return this.callTransactionApi({
+        vnp_Command: 'querydr',
+        vnp_TxnRef: input.providerReference,
+        vnp_TransactionDate: this.formatDate(input.transactionDate),
+        vnp_Amount: String(input.amountVnd * 100),
+        vnp_OrderInfo: `Query payment ${input.paymentId}`,
+        vnp_CreateDate: this.formatDate(new Date()),
+        vnp_IpAddr: '127.0.0.1',
+      }).then((result) => ({
+        status: result.vnp_ResponseCode === '00' && result.vnp_TransactionStatus === '00'
+          ? 'SUCCEEDED'
+          : result.vnp_ResponseCode === '24' ? 'UNKNOWN' : 'FAILED',
+        responseCode: result.vnp_ResponseCode || 'UNKNOWN',
+        providerReference: input.providerReference,
+      }));
+  }
+
+  createRefund(input: RefundCreation): Promise<RefundCreationResult> {
+      return this.callTransactionApi({
+        vnp_Command: 'refund',
+        vnp_TxnRef: input.providerReference,
+        vnp_TransactionType: '02',
+        vnp_Amount: String(input.amountVnd * 100),
+        vnp_OrderInfo: input.orderInfo,
+        vnp_TransactionDate: this.formatDate(input.transactionDate),
+        vnp_CreateDate: this.formatDate(new Date()),
+        vnp_IpAddr: input.clientIp,
+        vnp_CreateBy: input.idempotencyKey,
+      }).then((result) => ({
+        status: result.vnp_ResponseCode === '00' ? 'SUCCEEDED'
+          : result.vnp_ResponseCode === '24' ? 'PENDING' : 'FAILED',
+        responseCode: result.vnp_ResponseCode || 'UNKNOWN',
+        providerReference: input.providerReference,
+      }));
+  }
+
+  private async callTransactionApi(parameters: Record<string, string>): Promise<Record<string, string>> {
+      const signed = {
+        vnp_Version: '2.1.0',
+        vnp_TmnCode: this.config.vnpayTmnCode,
+        ...parameters,
+      };
+      const query = new URLSearchParams({
+        ...signed,
+        vnp_SecureHash: vnpaySignature(signed, this.config.vnpayHashSecret),
+      });
+      const response = await fetch(this.config.vnpayApiUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: query.toString(),
+      });
+      if (!response.ok) throw new Error('PROVIDER_UNAVAILABLE');
+      const text = await response.text();
+      return Object.fromEntries(new URLSearchParams(text));
   }
 
   private formatDate(value: Date): string {

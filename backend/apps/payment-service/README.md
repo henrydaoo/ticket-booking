@@ -8,6 +8,9 @@ operations from Booking-owned payment context and returns a signed VNPay URL.
 R2.5 verifies VNPay callbacks, persists deduplicated receipts, publishes
 `PaymentSucceeded` or `PaymentFailed` through the Payment outbox, and forwards
 the public webhook route through the Gateway without customer authentication.
+R2.6 adds provider query/refund boundaries, deadline reconciliation, durable
+refund idempotency, and late-success compensation. Reconciliation and refund
+operations are restart-safe and never modify Booking-owned state directly.
 Copy `.env.example` to `.env` and provide VNPay credentials through deployment
 secrets before starting.
 

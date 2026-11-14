@@ -17,3 +17,15 @@ ALTER TABLE payment_webhook_receipts
 
 CREATE INDEX IF NOT EXISTS payment_webhook_receipts_payment_idx
   ON payment_webhook_receipts (payment_id);
+
+ALTER TABLE payments
+  ADD COLUMN IF NOT EXISTS reconciliation_attempt_count INTEGER NOT NULL DEFAULT 0
+    CHECK (reconciliation_attempt_count >= 0),
+  ADD COLUMN IF NOT EXISTS last_reconciled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS next_reconciliation_at TIMESTAMPTZ;
+
+ALTER TABLE refunds
+  ADD COLUMN IF NOT EXISTS reason_code TEXT,
+  ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0
+    CHECK (attempt_count >= 0),
+  ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

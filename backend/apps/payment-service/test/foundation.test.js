@@ -12,6 +12,7 @@ test('payment configuration validates provider and Kafka boundaries', () => {
     KAFKA_CLIENT_ID: 'payment-service',
     KAFKA_GROUP_ID: 'payment-foundation',
     VNPAY_PAYMENT_URL: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    VNPAY_API_URL: 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction',
     VNPAY_TMN_CODE: 'tmn-code',
     VNPAY_HASH_SECRET: 'hash-secret',
     VNPAY_RETURN_URL: 'https://frontend.example.com/payment/return',

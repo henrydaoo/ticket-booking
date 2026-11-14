@@ -16,6 +16,10 @@ import { BookingClient } from './booking.client';
 import { PaymentService } from './payment.service';
 import { VnpayProvider } from './provider/vnpay.provider';
 import { PaymentOutboxLifecycle } from './outbox.lifecycle';
+import { ReconciliationRepository } from './reconciliation.repository';
+import { ReconciliationWorker } from './reconciliation.worker';
+import { RefundRepository } from './refund.repository';
+import { RefundService } from './refund.service';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
@@ -43,6 +47,10 @@ loadDotenv({ path: join(__dirname, '../.env') });
     VnpayProvider,
     { provide: 'PAYMENT_PROVIDER', useExisting: VnpayProvider },
     PaymentOutboxLifecycle,
+    ReconciliationRepository,
+    ReconciliationWorker,
+    RefundRepository,
+    RefundService,
   ],
 })
 class PaymentModule {}

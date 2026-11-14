@@ -62,6 +62,7 @@ export class BookingRepository {
         booking.status !== 'PENDING_PAYMENT' ||
         event.payload.amountVnd !== booking.total_vnd
       ) {
+        await this.insertRefundRequested(client, booking, event);
         return 'processed';
       }
       const reservationResult = await client.query<{ status: string }>(
@@ -69,6 +70,7 @@ export class BookingRepository {
         [booking.reservation_id],
       );
       if ((reservationResult.rowCount ?? 0) === 0 || reservationResult.rows[0].status !== 'PAYMENT_PENDING') {
+        await this.insertRefundRequested(client, booking, event);
         return 'processed';
       }
       const seats = await client.query<{ seat_id: string; status: string; booking_id: string | null }>(
@@ -87,6 +89,7 @@ export class BookingRepository {
         seats.rows.length !== bookingSeats.rows.length ||
         seats.rows.some((seat) => seat.status !== 'HELD' || !seatIds.has(seat.seat_id))
       ) {
+        await this.insertRefundRequested(client, booking, event);
         return 'processed';
       }
       await client.query(
@@ -150,6 +153,37 @@ export class BookingRepository {
       );
     }
     return 'processed';
+  }
+
+  private async insertRefundRequested(
+    client: PoolClient,
+    booking: BookingRow,
+    event: PaymentEvent,
+  ): Promise<void> {
+    await client.query(
+      `INSERT INTO booking_outbox_events
+         (event_type, schema_version, aggregate_id, correlation_id, payload)
+       VALUES ('RefundRequested', 1, $1, $2, $3::jsonb)`,
+      [
+        booking.id,
+        event.correlationId,
+        JSON.stringify({
+          eventId: booking.id + ':RefundRequested',
+          eventType: 'RefundRequested',
+          schemaVersion: 1,
+          aggregateType: 'Booking',
+          aggregateId: booking.id,
+          occurredAt: new Date().toISOString(),
+          correlationId: event.correlationId,
+          payload: {
+            bookingId: booking.id,
+            paymentId: event.payload.paymentId,
+            amountVnd: booking.total_vnd,
+            reasonCode: 'PAYMENT_SUCCEEDED_AFTER_SEAT_RELEASE',
+          },
+        }),
+      ],
+    );
   }
   async findPaymentContext(
     client: PoolClient,

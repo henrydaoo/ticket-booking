@@ -36,6 +36,10 @@ held seats to booked seats. A valid payment failure cancels the eligible
 workflow and releases its held seats. Invalid or late success events do not
 confirm a booking; compensation and refund handling belong to R2.6.
 
+R2.6 emits one full `RefundRequested` outbox event when a verified payment
+success can no longer confirm the booking because its reservation or seats were
+released or reassigned.
+
 Copy `.env.example` to `.env` before starting. Seat initialization,
 reservation, booking, Saga, and outbox behavior are implemented in later R2
 work packages.

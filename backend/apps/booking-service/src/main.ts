@@ -21,6 +21,7 @@ import { BookingController } from './booking/booking.controller';
 import { BookingRepository } from './booking/booking.repository';
 import { BookingService } from './booking/booking.service';
 import { PaymentOrchestrator } from './booking/payment-orchestrator';
+import { BookingOutboxLifecycle } from './booking/outbox.lifecycle';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
@@ -55,6 +56,7 @@ loadDotenv({ path: join(__dirname, '../.env') });
     BookingRepository,
     BookingService,
     PaymentOrchestrator,
+    BookingOutboxLifecycle,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
   ],

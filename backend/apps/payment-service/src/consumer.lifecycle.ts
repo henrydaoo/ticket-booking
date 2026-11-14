@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Consumer, Kafka } from 'kafkajs';
 import { PAYMENT_CONFIG, PaymentConfig } from './config';
+import { RefundService } from './refund.service';
 
 @Injectable()
 export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
@@ -8,7 +9,11 @@ export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   private readonly consumer: Consumer;
   private connected = false;
 
-  constructor(kafka: Kafka, @Inject(PAYMENT_CONFIG) private readonly config: PaymentConfig) {
+  constructor(
+    kafka: Kafka,
+    @Inject(PAYMENT_CONFIG) private readonly config: PaymentConfig,
+    private readonly refunds: RefundService,
+  ) {
     this.consumer = kafka.consumer({ groupId: config.kafkaGroupId });
   }
 
@@ -16,7 +21,20 @@ export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
     try {
       await this.consumer.connect();
       this.connected = true;
-      this.logger.log('Kafka consumer connected; payment events are deferred');
+      await this.consumer.subscribe({ topic: 'payment.refund-requested.v1', fromBeginning: true });
+      void this.consumer.run({
+        eachMessage: async ({ message }) => {
+          if (!message.value) throw new Error('Received empty RefundRequested message');
+          await this.refunds.process(JSON.parse(message.value.toString('utf8')));
+        },
+      }).catch((error: unknown) => {
+        this.logger.error(
+          'Payment Kafka consumer stopped unexpectedly',
+          error instanceof Error ? error.stack : String(error),
+        );
+        this.connected = false;
+      });
+      this.logger.log('Kafka consumer subscribed to payment.refund-requested.v1');
     } catch (error) {
       this.logger.error('Kafka consumer connection failed', error instanceof Error ? error.message : String(error));
     }

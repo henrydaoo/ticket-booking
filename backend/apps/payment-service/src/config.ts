@@ -7,6 +7,7 @@ export type PaymentConfig = ServiceConfig & {
   kafkaClientId: string;
   kafkaGroupId: string;
   vnpayPaymentUrl: string;
+  vnpayApiUrl: string;
   vnpayTmnCode: string;
   vnpayHashSecret: string;
   vnpayReturnUrl: string;
@@ -51,6 +52,7 @@ export function loadPaymentConfig(environment: NodeJS.ProcessEnv = process.env):
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),
     vnpayPaymentUrl: required(environment, 'VNPAY_PAYMENT_URL'),
+    vnpayApiUrl: required(environment, 'VNPAY_API_URL'),
     vnpayTmnCode: required(environment, 'VNPAY_TMN_CODE'),
     vnpayHashSecret: required(environment, 'VNPAY_HASH_SECRET'),
     vnpayReturnUrl: required(environment, 'VNPAY_RETURN_URL'),

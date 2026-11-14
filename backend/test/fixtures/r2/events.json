@@ -1,0 +1,38 @@
+{
+  "showtimePublished": {
+    "eventId": "event-r2-showtime-published-001",
+    "eventType": "ShowtimePublished",
+    "schemaVersion": 1,
+    "aggregateType": "Showtime",
+    "aggregateId": "showtime-r1-open-001",
+    "correlationId": "corr-r2-fixture-001",
+    "occurredAt": "2030-01-01T00:00:00.000Z",
+    "payload": {
+      "showtimeId": "showtime-r1-open-001",
+      "screenId": "screen-r1-001",
+      "layoutVersion": 1,
+      "seats": [
+        { "id": "seat-r1-a1", "label": "A1", "type": "STANDARD" },
+        { "id": "seat-r1-a2", "label": "A2", "type": "STANDARD" }
+      ],
+      "pricingVersion": 1,
+      "prices": { "STANDARD": 90000, "VIP": 120000, "COUPLE": 180000 }
+    }
+  },
+  "paymentSucceeded": {
+    "eventId": "event-r2-payment-succeeded-001",
+    "eventType": "PaymentSucceeded",
+    "schemaVersion": 1,
+    "aggregateType": "Payment",
+    "aggregateId": "payment-r2-001",
+    "correlationId": "corr-r2-fixture-001",
+    "occurredAt": "2030-01-01T00:01:00.000Z",
+    "payload": {
+      "paymentId": "payment-r2-001",
+      "bookingId": "booking-r2-001",
+      "amountVnd": 90000,
+      "provider": "VNPAY",
+      "providerReference": "vnpay-r2-001"
+    }
+  }
+}

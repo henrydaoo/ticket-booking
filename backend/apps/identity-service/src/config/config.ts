@@ -8,7 +8,12 @@ export type IdentityConfig = ServiceConfig & {
   jwtPrivateKeyPath: string;
   jwtPublicKeyPath: string;
   emailLinkBaseUrl: string;
-  emailDeliveryMode: 'local';
+  emailDeliveryMode: 'local' | 'smtp';
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPassword?: string;
+  emailFrom?: string;
   accessTokenTtlSeconds: number;
   refreshTokenTtlSeconds: number;
 };
@@ -54,6 +59,25 @@ function emailLinkBaseUrl(environment: NodeJS.ProcessEnv): string {
   return 'http://localhost:3007';
 }
 
+function emailDeliveryConfig(environment: NodeJS.ProcessEnv): Pick<
+  IdentityConfig,
+  'emailDeliveryMode' | 'smtpHost' | 'smtpPort' | 'smtpUser' | 'smtpPassword' | 'emailFrom'
+> {
+  const mode = environment.EMAIL_DELIVERY_MODE?.trim() ||
+    (environment.NODE_ENV === 'production' ? 'smtp' : 'local');
+  if (mode === 'local') return { emailDeliveryMode: 'local' };
+  if (mode !== 'smtp') {
+    throw new Error('EMAIL_DELIVERY_MODE must be local or smtp');
+  }
+
+  const smtpHost = requiredEnvironment(environment, 'SMTP_HOST');
+  const smtpPort = positiveIntegerEnvironment(environment, 'SMTP_PORT', 587);
+  const smtpUser = requiredEnvironment(environment, 'SMTP_USER');
+  const smtpPassword = requiredEnvironment(environment, 'SMTP_PASSWORD');
+  const emailFrom = requiredEnvironment(environment, 'EMAIL_FROM');
+  return { emailDeliveryMode: 'smtp', smtpHost, smtpPort, smtpUser, smtpPassword, emailFrom };
+}
+
 export function loadIdentityConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): IdentityConfig {
@@ -66,7 +90,7 @@ export function loadIdentityConfig(
     jwtPrivateKeyPath: requiredEnvironment(environment, 'JWT_PRIVATE_KEY_PATH'),
     jwtPublicKeyPath: requiredEnvironment(environment, 'JWT_PUBLIC_KEY_PATH'),
     emailLinkBaseUrl: emailLinkBaseUrl(environment),
-    emailDeliveryMode: 'local',
+    ...emailDeliveryConfig(environment),
     accessTokenTtlSeconds: positiveIntegerEnvironment(environment, 'ACCESS_TOKEN_TTL_SECONDS', 900),
     refreshTokenTtlSeconds: positiveIntegerEnvironment(
       environment,

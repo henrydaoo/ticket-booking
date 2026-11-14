@@ -49,4 +49,19 @@ export class BookingController {
       principalFromRequest(request),
     );
   }
+
+  @Post('bookings')
+  createBooking(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      '/bookings',
+      'POST',
+      correlationId,
+      principalFromRequest(request),
+      body,
+    );
+  }
 }

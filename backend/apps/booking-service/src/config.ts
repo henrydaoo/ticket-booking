@@ -7,6 +7,8 @@ export type BookingConfig = ServiceConfig & {
   kafkaGroupId: string;
   catalogServiceUrl: string;
   reservationDurationSeconds: number;
+  paymentProcessingDeadlineSeconds: number;
+  reservationExpirationIntervalSeconds: number;
 };
 
 export const BOOKING_CONFIG = Symbol('BOOKING_CONFIG');
@@ -59,6 +61,16 @@ export function loadBookingConfig(
       environment,
       'RESERVATION_DURATION_SECONDS',
       300,
+    ),
+    paymentProcessingDeadlineSeconds: positiveIntegerEnvironment(
+      environment,
+      'PAYMENT_PROCESSING_DEADLINE_SECONDS',
+      300,
+    ),
+    reservationExpirationIntervalSeconds: positiveIntegerEnvironment(
+      environment,
+      'RESERVATION_EXPIRATION_INTERVAL_SECONDS',
+      1,
     ),
   };
 }

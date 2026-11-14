@@ -17,11 +17,14 @@ import { ReservationController } from './reservation/reservation.controller';
 import { ReservationRepository } from './reservation/reservation.repository';
 import { ReservationService } from './reservation/reservation.service';
 import { CatalogClient } from './catalog/catalog-client';
+import { BookingController } from './booking/booking.controller';
+import { BookingRepository } from './booking/booking.repository';
+import { BookingService } from './booking/booking.service';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, ReservationController],
+  controllers: [HealthController, ReservationController, BookingController],
   providers: [
     {
       provide: BOOKING_CONFIG,
@@ -48,6 +51,8 @@ loadDotenv({ path: join(__dirname, '../.env') });
     CatalogClient,
     ReservationRepository,
     ReservationService,
+    BookingRepository,
+    BookingService,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
   ],

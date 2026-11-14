@@ -25,6 +25,11 @@ Catalog eligibility/prices through REST, persist a five-minute backend
 expiration, and use customer-scoped idempotency keys. Reservation cancellation
 releases only seats still held by that reservation.
 
+R2.3 creates `PENDING_PAYMENT` bookings only from customer-owned, non-expired
+active reservations. Reservation price rows are copied into immutable booking
+seat snapshots in the same transaction. The expiration worker claims only
+expired `ACTIVE` reservations and never releases `PAYMENT_PENDING` state.
+
 Copy `.env.example` to `.env` before starting. Seat initialization,
 reservation, booking, Saga, and outbox behavior are implemented in later R2
 work packages.

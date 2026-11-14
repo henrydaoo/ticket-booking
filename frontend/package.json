@@ -2,7 +2,7 @@
   "name": "@ticket-booking/frontend",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3007",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -10,18 +10,28 @@
     "ci": "pnpm run lint && pnpm run test && pnpm run build"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.6",
+    "@tanstack/react-query": "^5.107.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.72.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.92.0",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.5.0",
-    "typescript-eslint": "^8.0.0",
-    "typescript": "^5.8.0"
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0"
   }
 }

@@ -16,6 +16,19 @@ pnpm run migrate
 
 The generated `dev-keys/` directory is ignored and must never be committed.
 
+To load the deterministic R1 accounts for local UI and Gateway verification,
+run the explicit seed from the backend workspace:
+
+```powershell
+Set-Location D:\beandrew\developer\ticket-booking\backend
+pnpm seed:r1
+```
+
+The seed reads the test-only accounts from
+`backend/test/fixtures/r1/identity.json`, is safe to rerun, and prints the
+test-only Platform Admin TOTP secret. It must only be used with local
+development databases.
+
 ## Authentication boundaries
 
 - `POST /auth/register`

@@ -4,6 +4,7 @@ export type GatewayConfig = ServiceConfig & {
   identityServiceUrl: string;
   identityJwksUrl: string;
   catalogServiceUrl: string;
+  corsOrigins: string[];
   jwtIssuer: string;
   jwtAudience: string;
   jwksCacheTtlSeconds: number;
@@ -40,6 +41,28 @@ function positiveIntegerEnvironment(
   return value;
 }
 
+function listEnvironment(
+  environment: NodeJS.ProcessEnv,
+  name: string,
+  defaultValue: string,
+): string[] {
+  const value = environment[name]?.trim() || defaultValue;
+  const entries = value.split(',').map((entry) => entry.trim()).filter(Boolean);
+
+  if (entries.length === 0) {
+    throw new Error(`${name} must contain at least one origin`);
+  }
+
+  for (const origin of entries) {
+    const parsed = new URL(origin);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.pathname !== '/') {
+      throw new Error(`${name} contains an invalid origin: ${origin}`);
+    }
+  }
+
+  return entries;
+}
+
 export function loadGatewayConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): GatewayConfig {
@@ -53,6 +76,11 @@ export function loadGatewayConfig(
     catalogServiceUrl: requiredEnvironment(environment, 'CATALOG_SERVICE_URL').replace(
       /\/+$/,
       '',
+    ),
+    corsOrigins: listEnvironment(
+      environment,
+      'CORS_ORIGINS',
+      'http://localhost:3007,http://127.0.0.1:3007',
     ),
     jwtIssuer: requiredEnvironment(environment, 'JWT_ISSUER'),
     jwtAudience: requiredEnvironment(environment, 'JWT_AUDIENCE'),

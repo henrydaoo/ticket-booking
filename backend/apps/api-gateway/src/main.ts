@@ -12,6 +12,12 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger: ['log', 'warn', 'error'] });
   const config = app.get(GATEWAY_CONFIG);
 
+  app.enableCors({
+    origin: config.corsOrigins,
+    credentials: false,
+    methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Correlation-Id'],
+  });
   app.use(correlationIdMiddleware);
   await app.listen(config.port);
 }

@@ -14,6 +14,18 @@ pnpm run migrate
 pnpm start
 ```
 
+The local R1 seed also loads the deterministic cinema, movie, screen, seat,
+price, and showtime data used by the frontend:
+
+```powershell
+Set-Location D:\beandrew\developer\ticket-booking\backend
+pnpm seed:r1
+```
+
+The seed is explicit and idempotent. It creates one currently eligible
+published showtime, one future-sale published showtime, and one draft
+showtime. It uses only local development databases.
+
 Public discovery returns published showtimes. Managers create drafts, set
 screen seat-type prices, and publish drafts. Publishing snapshots the prices
 and physical seat layout in one Catalog transaction with the Outbox record.

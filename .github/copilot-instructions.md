@@ -23,17 +23,15 @@ If source-of-truth documents conflict, do not choose one arbitrarily. Identify t
 - Follow an incremental, iterative development workflow.
 - Work on one approved task at a time.
 - Analyze the requirements before proposing an implementation.
-- Read the applicable implementation record and inspect the actual code and
-  worktree; distinguish historical evidence from current verification.
+- Read the applicable release plan, contracts and actual code/worktree;
+  distinguish historical evidence from current verification.
 - Present the implementation plan in chat before modifying files, including
   affected file groups and why they are needed.
 - Wait for explicit user approval before implementing.
-- Do not update the implementation record while planning is unapproved.
-  When an implementation record does not yet exist, propose its initial scope
-  and creation in chat; create it only after explicit plan approval.
-- Split work into reviewable behavior-sized tasks without separating
-  invariants that must be enforced together. Do not expose unsafe intermediate
-  behavior or impose an arbitrary file-count limit.
+- Keep the implementation plan in the session conversation. Do not create or
+  maintain separate implementation-plan files for individual tasks.
+- Implement one approved behavior at a time without separating invariants that
+  must be enforced together. Do not expose unsafe intermediate behavior.
 - Do not expand the scope beyond the approved task.
 - Do not automatically proceed to the next task.
 - Ask questions when requirements are ambiguous instead of making assumptions.
@@ -102,10 +100,7 @@ After implementation:
 - Never discard or overwrite existing user changes.
 - Show the Git diff before requesting commit approval.
 - Use meaningful commit messages when the user approves a commit.
-- From R1.5 onward, commit each task separately after explicit commit approval.
-  Do not combine unrelated tasks.
-- Do not record commit hashes in implementation plans. Record the approved
-  task ID in the commit message so Git history can provide commit evidence.
+- Commit only after explicit commit approval. Do not combine unrelated work.
 
 # AI Tool Usage
 

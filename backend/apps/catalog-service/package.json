@@ -6,6 +6,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "migrate": "node scripts/migrate.js",
+    "seed:r1": "node scripts/seed-r1.js",
     "test:integration": "pnpm run build && node scripts/test-integration.js"
   },
   "dependencies": {

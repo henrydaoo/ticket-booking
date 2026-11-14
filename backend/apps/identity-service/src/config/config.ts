@@ -51,7 +51,7 @@ function emailLinkBaseUrl(environment: NodeJS.ProcessEnv): string {
   if (environment.NODE_ENV === 'production') {
     throw new Error('Missing required environment variable: EMAIL_LINK_BASE_URL');
   }
-  return 'http://localhost:3000';
+  return 'http://localhost:3007';
 }
 
 export function loadIdentityConfig(

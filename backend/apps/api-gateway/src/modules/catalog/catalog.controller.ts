@@ -20,6 +20,26 @@ export class CatalogController {
     return this.proxy.forward('/movies', correlationId);
   }
 
+  @Get('cinemas')
+  cinemas(@Headers(CORRELATION_ID_HEADER) correlationId?: string): Promise<unknown> {
+    return this.proxy.forward('/cinemas', correlationId);
+  }
+
+  @Get('branches')
+  branches(@Headers(CORRELATION_ID_HEADER) correlationId?: string): Promise<unknown> {
+    return this.proxy.forward('/branches', correlationId);
+  }
+
+  @Get('screens')
+  screens(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const queryIndex = request.originalUrl.indexOf('?');
+    const query = queryIndex < 0 ? '' : request.originalUrl.slice(queryIndex);
+    return this.proxy.forward(`/screens${query}`, correlationId);
+  }
+
   @Get('showtimes')
   showtimes(
     @Req() request: Request,

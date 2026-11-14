@@ -9,7 +9,7 @@ Before any implementation or review:
 
 1. Identify the affected release, work package, service, and user flow.
 2. Read the relevant requirements, architecture, roadmap, release plan, and
-   approved contracts and implementation record in `docs/`. The initial
+   approved contracts in `docs/`. The initial
    system overview is local-only and is consulted only when available.
 3. Record confirmed requirements, approved decisions, assumptions, open
    questions, acceptance criteria, and out-of-scope work.

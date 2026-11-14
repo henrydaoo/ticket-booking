@@ -11,6 +11,8 @@ import { HealthController } from './health.controller';
 import { KafkaConsumerLifecycle } from './kafka-consumer.lifecycle';
 import { BookingWorkerLifecycle } from './worker.lifecycle';
 import { TransactionRunner } from './transaction.runner';
+import { BookingInventoryRepository } from './inventory/booking-inventory.repository';
+import { InventoryInitializer } from './inventory/inventory-initializer';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
@@ -37,6 +39,8 @@ loadDotenv({ path: join(__dirname, '../.env') });
       inject: [BOOKING_CONFIG],
     },
     TransactionRunner,
+    BookingInventoryRepository,
+    InventoryInitializer,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
   ],

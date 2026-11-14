@@ -13,6 +13,12 @@ R2.0 provides:
   state boundaries.
 - A migration runner that applies repeatable SQL files.
 
+R2.1 consumes `ShowtimePublished` from
+`catalog.showtime-published.v1` and initializes the Booking-owned
+showtime inventory idempotently. The consumer replays retained events when it
+has no committed offset, deduplicates by `eventId`, and performs readiness and
+seat writes in one local transaction.
+
 Copy `.env.example` to `.env` before starting. Seat initialization,
 reservation, booking, Saga, and outbox behavior are implemented in later R2
 work packages.

@@ -2,6 +2,9 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Consumer, Kafka } from 'kafkajs';
 import { BOOKING_CONFIG, BookingConfig } from './config';
 import { Inject } from '@nestjs/common';
+import { InventoryInitializer } from './inventory/inventory-initializer';
+
+export const SHOWTIME_PUBLISHED_TOPIC = 'catalog.showtime-published.v1';
 
 @Injectable()
 export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
@@ -12,6 +15,7 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   constructor(
     kafka: Kafka,
     @Inject(BOOKING_CONFIG) private readonly config: BookingConfig,
+    private readonly inventoryInitializer: InventoryInitializer,
   ) {
     this.consumer = kafka.consumer({ groupId: config.kafkaGroupId });
   }
@@ -19,8 +23,28 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     try {
       await this.consumer.connect();
+      await this.consumer.subscribe({
+        topic: SHOWTIME_PUBLISHED_TOPIC,
+        fromBeginning: true,
+      });
+      void this.consumer.run({
+        eachMessage: async ({ message }) => {
+          if (!message.value) {
+            throw new Error('Received empty ShowtimePublished Kafka message');
+          }
+          await this.inventoryInitializer.initialize(
+            JSON.parse(message.value.toString('utf8')),
+          );
+        },
+      }).catch((error: unknown) => {
+        this.logger.error(
+          'Booking Kafka consumer stopped unexpectedly',
+          error instanceof Error ? error.stack : String(error),
+        );
+        this.connected = false;
+      });
       this.connected = true;
-      this.logger.log('Kafka consumer connected; event subscriptions are deferred');
+      this.logger.log(`Kafka consumer subscribed to ${SHOWTIME_PUBLISHED_TOPIC}`);
     } catch (error) {
       this.logger.error(
         'Kafka consumer connection failed',

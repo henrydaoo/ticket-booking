@@ -1,0 +1,61 @@
+{
+  "users": [
+    {
+      "id": "user-customer-001",
+      "email": "customer.r1@example.test",
+      "password": "R1-test-only-Customer-001",
+      "roles": ["CUSTOMER"],
+      "branchIds": [],
+      "emailVerified": true,
+      "mfaCompleted": false
+    },
+    {
+      "id": "user-manager-001",
+      "email": "manager.r1@example.test",
+      "password": "R1-test-only-Manager-001",
+      "roles": ["CINEMA_MANAGER"],
+      "branchIds": ["branch-r1-hcm-001"],
+      "emailVerified": true,
+      "mfaCompleted": false
+    },
+    {
+      "id": "user-admin-001",
+      "email": "admin.r1@example.test",
+      "password": "R1-test-only-Admin-001",
+      "roles": ["PLATFORM_ADMIN"],
+      "branchIds": [],
+      "emailVerified": true,
+      "mfaCompleted": true
+    },
+    {
+      "id": "user-admin-mfa-pending-001",
+      "email": "admin.pending.r1@example.test",
+      "password": "R1-test-only-Admin-Pending-001",
+      "roles": ["PLATFORM_ADMIN"],
+      "branchIds": [],
+      "emailVerified": true,
+      "mfaCompleted": false
+    },
+    {
+      "id": "user-staff-001",
+      "email": "staff.r1@example.test",
+      "password": "R1-test-only-Staff-001",
+      "roles": ["CINEMA_STAFF"],
+      "branchIds": ["branch-r1-hcm-001"],
+      "emailVerified": true,
+      "mfaCompleted": false
+    }
+  ],
+  "branches": [
+    {
+      "id": "branch-r1-hcm-001",
+      "name": "R1 HCM Branch",
+      "cinemaId": "cinema-r1-001"
+    },
+    {
+      "id": "branch-r1-dn-001",
+      "name": "R1 Da Nang Branch",
+      "cinemaId": "cinema-r1-001"
+    }
+  ]
+}

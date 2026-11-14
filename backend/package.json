@@ -9,6 +9,7 @@
     "test": "pnpm run build && pnpm run test:unit",
     "test:unit": "node --test \"apps/*/test/*.test.js\" \"packages/*/test/*.test.js\"",
     "typecheck": "tsc --noEmit",
+    "seed:r1": "node scripts/seed-r1.js",
     "verify:services": "node scripts/verify-services.mjs",
     "ci": "pnpm run lint && pnpm run build:config && pnpm run typecheck && pnpm run verify:services && pnpm run build && pnpm run test:unit"
   },

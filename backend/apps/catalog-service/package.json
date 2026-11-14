@@ -5,13 +5,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "seed:r1": "node scripts/seed-r1.js",
+    "test:integration": "pnpm run build && node scripts/test-integration.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@ticket-booking/config": "workspace:*",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "dotenv": "^16.4.7",
     "kafkajs": "^2.2.4",
     "pg": "^8.13.3",

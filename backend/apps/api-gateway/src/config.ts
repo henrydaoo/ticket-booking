@@ -5,6 +5,7 @@ export type GatewayConfig = ServiceConfig & {
   identityJwksUrl: string;
   catalogServiceUrl: string;
   bookingServiceUrl: string;
+  paymentServiceUrl: string;
   corsOrigins: string[];
   jwtIssuer: string;
   jwtAudience: string;
@@ -79,6 +80,10 @@ export function loadGatewayConfig(
       '',
     ),
     bookingServiceUrl: requiredEnvironment(environment, 'BOOKING_SERVICE_URL').replace(
+      /\/+$/,
+      '',
+    ),
+    paymentServiceUrl: requiredEnvironment(environment, 'PAYMENT_SERVICE_URL').replace(
       /\/+$/,
       '',
     ),

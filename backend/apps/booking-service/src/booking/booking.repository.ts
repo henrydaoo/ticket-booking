@@ -12,8 +12,40 @@ type BookingRow = {
   payment_deadline_at: Date;
 };
 
+export type PaymentContext = {
+  bookingId: string;
+  customerId: string;
+  status: BookingResponse['status'];
+  totalVnd: number;
+  paymentDeadlineAt: string;
+};
+
 @Injectable()
 export class BookingRepository {
+  async findPaymentContext(
+    client: PoolClient,
+    bookingId: string,
+    customerId: string,
+  ): Promise<PaymentContext | null> {
+    const result = await client.query<BookingRow>(
+      `SELECT id, reservation_id, customer_id, showtime_id, status,
+              total_vnd, payment_deadline_at
+       FROM bookings
+       WHERE id = $1 AND customer_id = $2
+       FOR SHARE`,
+      [bookingId, customerId],
+    );
+    if ((result.rowCount ?? 0) === 0) return null;
+    const booking = result.rows[0];
+    return {
+      bookingId: booking.id,
+      customerId: booking.customer_id,
+      status: booking.status,
+      totalVnd: booking.total_vnd,
+      paymentDeadlineAt: new Date(booking.payment_deadline_at).toISOString(),
+    };
+  }
+
   async findByIdempotencyKey(
     client: PoolClient,
     customerId: string,

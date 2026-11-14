@@ -11,6 +11,7 @@ import { BookingPrincipal } from '../common/principal';
 import { TransactionRunner } from '../transaction.runner';
 import { BookingRepository } from './booking.repository';
 import { BookingResponse } from './booking.types';
+import { PaymentContext } from './booking.repository';
 
 @Injectable()
 export class BookingService {
@@ -19,6 +20,21 @@ export class BookingService {
     private readonly repository: BookingRepository,
     @Inject(BOOKING_CONFIG) private readonly config: BookingConfig,
   ) {}
+
+  async paymentContext(
+    principal: BookingPrincipal,
+    bookingId: string,
+  ): Promise<PaymentContext> {
+    if (!bookingId) throw new BadRequestException('bookingId is required');
+    const result = await this.transactions.run((client) =>
+      this.repository.findPaymentContext(client, bookingId, principal.userId),
+    );
+    if (!result) throw new NotFoundException('BOOKING_NOT_FOUND');
+    if (result.status !== 'PENDING_PAYMENT') {
+      throw new ConflictException('BOOKING_NOT_PENDING_PAYMENT');
+    }
+    return result;
+  }
 
   async create(
     principal: BookingPrincipal,

@@ -30,6 +30,12 @@ active reservations. Reservation price rows are copied into immutable booking
 seat snapshots in the same transaction. The expiration worker claims only
 expired `ACTIVE` reservations and never releases `PAYMENT_PENDING` state.
 
+R2.5 consumes Payment Service success and failure events idempotently. A valid
+payment success atomically confirms the booking and reservation and changes
+held seats to booked seats. A valid payment failure cancels the eligible
+workflow and releases its held seats. Invalid or late success events do not
+confirm a booking; compensation and refund handling belong to R2.6.
+
 Copy `.env.example` to `.env` before starting. Seat initialization,
 reservation, booking, Saga, and outbox behavior are implemented in later R2
 work packages.

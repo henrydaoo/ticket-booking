@@ -401,7 +401,7 @@ credentials are not published.
   "aggregateType": "Reservation",
   "payload": {
     "reservationId": "reservation-r2-001",
-    "bookingId": "booking-r2-001",
+    "bookingId": null,
     "showtimeId": "showtime-r1-open-001",
     "seatIds": ["seat-r1-a1", "seat-r1-a2"],
     "expiredAt": "2030-01-15T12:05:00Z"
@@ -409,7 +409,9 @@ credentials are not published.
 }
 ```
 
-The consumer must not interpret this event as permission to release seats
+`bookingId` is nullable. It is `null` when an active reservation expires before
+the customer creates a booking; a future workflow may populate it when a
+payment-pending booking is explicitly expired. The consumer must not interpret this event as permission to release seats
 that are in payment processing without checking the persisted workflow state.
 
 ### 6.6 `RefundRequested`

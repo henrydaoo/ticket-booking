@@ -9,18 +9,18 @@ import { PAYMENT_CONFIG, loadPaymentConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
 import { PaymentConsumerLifecycle } from './consumer.lifecycle';
 import { HealthController } from './health.controller';
-import { ProviderController } from './provider.controller';
 import { PaymentController } from './payment.controller';
 import { TransactionRunner } from './transaction.runner';
 import { PaymentRepository } from './payment.repository';
 import { BookingClient } from './booking.client';
 import { PaymentService } from './payment.service';
 import { VnpayProvider } from './provider/vnpay.provider';
+import { PaymentOutboxLifecycle } from './outbox.lifecycle';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, ProviderController, PaymentController],
+  controllers: [HealthController, PaymentController],
   providers: [
     { provide: PAYMENT_CONFIG, useFactory: loadPaymentConfig },
     {
@@ -42,6 +42,7 @@ loadDotenv({ path: join(__dirname, '../.env') });
     PaymentService,
     VnpayProvider,
     { provide: 'PAYMENT_PROVIDER', useExisting: VnpayProvider },
+    PaymentOutboxLifecycle,
   ],
 })
 class PaymentModule {}

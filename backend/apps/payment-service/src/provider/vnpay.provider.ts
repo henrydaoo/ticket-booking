@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PAYMENT_CONFIG, PaymentConfig } from '../config';
 import { PaymentCreation, PaymentProviderPort, PaymentCreationResult } from './payment-provider.port';
-import { vnpaySignature } from './vnpay-signature';
+import { hasValidVnpaySignature, vnpaySignature } from './vnpay-signature';
 
 @Injectable()
 export class VnpayProvider implements PaymentProviderPort {
@@ -34,8 +34,28 @@ export class VnpayProvider implements PaymentProviderPort {
     };
   }
 
-  verifyCallback(_parameters: Record<string, string>): never {
-    throw new Error('VNPay callback processing is deferred to R2.5');
+  verifyCallback(parameters: Record<string, string>) {
+    const signature = parameters.vnp_SecureHash;
+    if (!signature || !hasValidVnpaySignature(parameters, signature, this.config.vnpayHashSecret)) {
+      throw new Error('INVALID_WEBHOOK_SIGNATURE');
+    }
+    const amountRaw = parameters.vnp_Amount;
+    const amount = Number(amountRaw);
+    if (
+      !parameters.vnp_TxnRef ||
+      !Number.isInteger(amount) ||
+      amount < 0 ||
+      amount % 100 !== 0
+    ) {
+      throw new Error('INVALID_WEBHOOK_PAYLOAD');
+    }
+    return {
+      providerReference: parameters.vnp_TxnRef,
+      paymentId: parameters.vnp_TxnRef,
+      amountVnd: amount / 100,
+      success: parameters.vnp_ResponseCode === '00' && parameters.vnp_TransactionStatus === '00',
+      responseCode: parameters.vnp_ResponseCode || 'UNKNOWN',
+    };
   }
 
   private formatDate(value: Date): string {

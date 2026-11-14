@@ -10,10 +10,112 @@ type PaymentRow = {
   provider: 'VNPAY';
   payment_url: string | null;
   processing_deadline_at: Date;
+  customer_id: string;
+  provider_reference: string | null;
 };
 
 @Injectable()
 export class PaymentRepository {
+  async processWebhook(
+    client: PoolClient,
+    input: {
+      provider: 'VNPAY';
+      providerEventId: string;
+      signature: string;
+      payload: Record<string, string>;
+      providerReference: string;
+      amountVnd: number;
+      success: boolean;
+      responseCode: string;
+      correlationId: string;
+    },
+  ): Promise<'duplicate' | 'processed'> {
+    const receipt = await client.query<{ status: string }>(
+      `SELECT status
+       FROM payment_webhook_receipts
+       WHERE provider = $1 AND provider_event_id = $2
+       FOR UPDATE`,
+      [input.provider, input.providerEventId],
+    );
+    if ((receipt.rowCount ?? 0) > 0) return 'duplicate';
+
+    const payment = await client.query<PaymentRow>(
+      `SELECT id, booking_id, customer_id, status, amount_vnd, provider,
+              provider_reference, payment_url, processing_deadline_at
+       FROM payments
+       WHERE provider = $1 AND provider_reference = $2
+       FOR UPDATE`,
+      [input.provider, input.providerReference],
+    );
+    if ((payment.rowCount ?? 0) === 0) throw new Error('PAYMENT_NOT_FOUND');
+    const current = payment.rows[0];
+    if (current.amount_vnd !== input.amountVnd) throw new Error('PAYMENT_AMOUNT_MISMATCH');
+
+    await client.query(
+      `INSERT INTO payment_webhook_receipts
+         (provider, provider_event_id, payment_id, signature, payload, result_code, status)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6, 'RECEIVED')`,
+      [
+        input.provider,
+        input.providerEventId,
+        current.id,
+        input.signature,
+        JSON.stringify(input.payload),
+        input.responseCode,
+      ],
+    );
+
+    const nextStatus: PaymentStatus = input.success ? 'SUCCEEDED' : 'FAILED';
+    if (current.status === 'PENDING' || current.status === 'PROCESSING') {
+      await client.query(
+        `UPDATE payments
+         SET status = $2, updated_at = NOW()
+         WHERE id = $1`,
+        [current.id, nextStatus],
+      );
+      await client.query(
+        `INSERT INTO payment_outbox_events
+           (event_type, schema_version, aggregate_id, correlation_id, payload)
+         VALUES ($1, 1, $2, $3, $4::jsonb)`,
+        [
+          input.success ? 'PaymentSucceeded' : 'PaymentFailed',
+          current.id,
+          input.correlationId,
+          JSON.stringify({
+            eventId: current.id,
+            eventType: input.success ? 'PaymentSucceeded' : 'PaymentFailed',
+            schemaVersion: 1,
+            aggregateType: 'Payment',
+            aggregateId: current.id,
+            occurredAt: new Date().toISOString(),
+            correlationId: input.correlationId,
+            payload: input.success
+              ? {
+                  paymentId: current.id,
+                  bookingId: current.booking_id,
+                  amountVnd: current.amount_vnd,
+                  provider: current.provider,
+                  providerReference: current.provider_reference,
+                }
+              : {
+                  paymentId: current.id,
+                  bookingId: current.booking_id,
+                  reasonCode: 'PROVIDER_DECLINED',
+                  retryable: false,
+                },
+          }),
+        ],
+      );
+    }
+    await client.query(
+      `UPDATE payment_webhook_receipts
+       SET status = 'PROCESSED', processed_at = NOW()
+       WHERE provider = $1 AND provider_event_id = $2`,
+      [input.provider, input.providerEventId],
+    );
+    return 'processed';
+  }
+
   async findByIdempotencyKey(
     client: PoolClient,
     customerId: string,

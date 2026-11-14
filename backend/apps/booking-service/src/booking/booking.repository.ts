@@ -20,8 +20,137 @@ export type PaymentContext = {
   paymentDeadlineAt: string;
 };
 
+export type PaymentEvent = {
+  eventId: string;
+  eventType: 'PaymentSucceeded' | 'PaymentFailed';
+  correlationId: string;
+  payload: {
+    paymentId: string;
+    bookingId: string;
+    amountVnd?: number;
+    provider?: string;
+    providerReference?: string;
+    reasonCode?: string;
+    retryable?: boolean;
+  };
+};
+
 @Injectable()
 export class BookingRepository {
+  async processPaymentEvent(client: PoolClient, event: PaymentEvent): Promise<'duplicate' | 'processed'> {
+    const consumed = await client.query(
+      `INSERT INTO booking_consumed_events
+         (event_id, event_type, aggregate_id, correlation_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (event_id) DO NOTHING`,
+      [event.eventId, event.eventType, event.payload.bookingId, event.correlationId],
+    );
+    if ((consumed.rowCount ?? 0) === 0) return 'duplicate';
+
+    const bookingResult = await client.query<BookingRow>(
+      `SELECT id, reservation_id, customer_id, showtime_id, status,
+              total_vnd, payment_deadline_at
+       FROM bookings
+       WHERE id = $1
+       FOR UPDATE`,
+      [event.payload.bookingId],
+    );
+    if ((bookingResult.rowCount ?? 0) === 0) return 'processed';
+    const booking = bookingResult.rows[0];
+    if (event.eventType === 'PaymentSucceeded') {
+      if (
+        booking.status !== 'PENDING_PAYMENT' ||
+        event.payload.amountVnd !== booking.total_vnd
+      ) {
+        return 'processed';
+      }
+      const reservationResult = await client.query<{ status: string }>(
+        `SELECT status FROM reservations WHERE id = $1 FOR UPDATE`,
+        [booking.reservation_id],
+      );
+      if ((reservationResult.rowCount ?? 0) === 0 || reservationResult.rows[0].status !== 'PAYMENT_PENDING') {
+        return 'processed';
+      }
+      const seats = await client.query<{ seat_id: string; status: string; booking_id: string | null }>(
+        `SELECT seat_id, status, booking_id
+         FROM showtime_seats
+         WHERE booking_id IS NULL AND reservation_id = $1
+         FOR UPDATE`,
+        [booking.reservation_id],
+      );
+      const bookingSeats = await client.query<{ seat_id: string }>(
+        `SELECT seat_id FROM booking_seats WHERE booking_id = $1`,
+        [booking.id],
+      );
+      const seatIds = new Set(bookingSeats.rows.map((seat) => seat.seat_id));
+      if (
+        seats.rows.length !== bookingSeats.rows.length ||
+        seats.rows.some((seat) => seat.status !== 'HELD' || !seatIds.has(seat.seat_id))
+      ) {
+        return 'processed';
+      }
+      await client.query(
+        `UPDATE showtime_seats
+         SET status = 'BOOKED', booking_id = $1, reservation_id = NULL, updated_at = NOW()
+         WHERE reservation_id = $2 AND status = 'HELD'`,
+        [booking.id, booking.reservation_id],
+      );
+      await client.query(
+        `UPDATE reservations SET status = 'CONFIRMED', updated_at = NOW() WHERE id = $1`,
+        [booking.reservation_id],
+      );
+      await client.query(
+        `UPDATE bookings SET status = 'CONFIRMED', updated_at = NOW() WHERE id = $1`,
+        [booking.id],
+      );
+      await client.query(
+        `INSERT INTO booking_outbox_events
+           (event_type, schema_version, aggregate_id, correlation_id, payload)
+         VALUES ('BookingConfirmed', 1, $1, $2, $3::jsonb)`,
+        [
+          booking.id,
+          event.correlationId,
+          JSON.stringify({
+            eventId: booking.id + ':BookingConfirmed',
+            eventType: 'BookingConfirmed',
+            schemaVersion: 1,
+            aggregateType: 'Booking',
+            aggregateId: booking.id,
+            occurredAt: new Date().toISOString(),
+            correlationId: event.correlationId,
+            payload: {
+              bookingId: booking.id,
+              customerId: booking.customer_id,
+              showtimeId: booking.showtime_id,
+              totalVnd: booking.total_vnd,
+              seats: bookingSeats.rows,
+            },
+          }),
+        ],
+      );
+      return 'processed';
+    }
+
+    if (booking.status === 'PENDING_PAYMENT') {
+      await client.query(
+        `UPDATE bookings SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1`,
+        [booking.id],
+      );
+      await client.query(
+        `UPDATE reservations
+         SET status = 'CANCELLED', updated_at = NOW()
+         WHERE id = $1 AND status = 'PAYMENT_PENDING'`,
+        [booking.reservation_id],
+      );
+      await client.query(
+        `UPDATE showtime_seats
+         SET status = 'AVAILABLE', reservation_id = NULL, updated_at = NOW()
+         WHERE reservation_id = $1 AND status = 'HELD'`,
+        [booking.reservation_id],
+      );
+    }
+    return 'processed';
+  }
   async findPaymentContext(
     client: PoolClient,
     bookingId: string,
@@ -193,6 +322,7 @@ export class BookingRepository {
             correlationId: `reservation-expiration:${reservation.id}`,
             payload: {
               reservationId: reservation.id,
+              bookingId: null,
               showtimeId: reservation.showtime_id,
               seatIds: seats.rows.map((seat) => seat.seat_id),
               expiredAt: new Date().toISOString(),

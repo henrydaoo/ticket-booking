@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PAYMENT_CONFIG, PaymentConfig } from './config';
@@ -100,5 +101,50 @@ export class PaymentService {
         providerPayment.paymentUrl,
       );
     });
+  }
+
+  async processWebhook(
+    parameters: Record<string, string>,
+    correlationId: string,
+  ): Promise<{ received: true; duplicate: boolean }> {
+    let verified;
+    try {
+      verified = this.provider.verifyCallback(parameters);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'INVALID_WEBHOOK_SIGNATURE') {
+        throw new BadRequestException('INVALID_WEBHOOK_SIGNATURE');
+      }
+      throw new BadRequestException('INVALID_WEBHOOK_PAYLOAD');
+    }
+    const eventId = [
+      verified.providerReference,
+      parameters.vnp_TransactionNo || 'none',
+      verified.responseCode,
+    ].join(':');
+    let result: 'duplicate' | 'processed';
+    try {
+      result = await this.transactions.run((client) =>
+        this.repository.processWebhook(client, {
+          provider: 'VNPAY',
+          providerEventId: eventId,
+          signature: parameters.vnp_SecureHash,
+          payload: parameters,
+          providerReference: verified.providerReference,
+          amountVnd: verified.amountVnd,
+          success: verified.success,
+          responseCode: verified.responseCode,
+          correlationId,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PAYMENT_NOT_FOUND') {
+        throw new NotFoundException('PAYMENT_NOT_FOUND');
+      }
+      if (error instanceof Error && error.message === 'PAYMENT_AMOUNT_MISMATCH') {
+        throw new ConflictException('PAYMENT_AMOUNT_MISMATCH');
+      }
+      throw error;
+    }
+    return { received: true, duplicate: result === 'duplicate' };
   }
 }

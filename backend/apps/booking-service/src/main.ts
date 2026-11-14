@@ -20,6 +20,7 @@ import { CatalogClient } from './catalog/catalog-client';
 import { BookingController } from './booking/booking.controller';
 import { BookingRepository } from './booking/booking.repository';
 import { BookingService } from './booking/booking.service';
+import { PaymentOrchestrator } from './booking/payment-orchestrator';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
@@ -53,6 +54,7 @@ loadDotenv({ path: join(__dirname, '../.env') });
     ReservationService,
     BookingRepository,
     BookingService,
+    PaymentOrchestrator,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
   ],

@@ -61,10 +61,21 @@ export class BookingInventoryRepository {
     for (const seat of event.payload.seats) {
       await client.query(
         `INSERT INTO showtime_seats
-           (showtime_id, seat_id, seat_label, seat_type, status)
-         VALUES ($1, $2, $3, $4, 'AVAILABLE')
-         ON CONFLICT (showtime_id, seat_id) DO NOTHING`,
-        [event.payload.showtimeId, seat.id, seat.label, seat.type],
+          (showtime_id, seat_id, seat_label, seat_type, price_vnd, status)
+        VALUES ($1, $2, $3, $4, $5, 'AVAILABLE')
+        ON CONFLICT (showtime_id, seat_id) DO UPDATE
+        SET seat_label = EXCLUDED.seat_label,
+            seat_type = EXCLUDED.seat_type,
+            price_vnd = EXCLUDED.price_vnd,
+            updated_at = NOW()
+        WHERE showtime_seats.status = 'AVAILABLE'`,
+        [
+         event.payload.showtimeId,
+         seat.id,
+         seat.label,
+         seat.type,
+         event.payload.prices[seat.type],
+        ],
       );
     }
 

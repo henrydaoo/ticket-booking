@@ -13,11 +13,15 @@ import { BookingWorkerLifecycle } from './worker.lifecycle';
 import { TransactionRunner } from './transaction.runner';
 import { BookingInventoryRepository } from './inventory/booking-inventory.repository';
 import { InventoryInitializer } from './inventory/inventory-initializer';
+import { ReservationController } from './reservation/reservation.controller';
+import { ReservationRepository } from './reservation/reservation.repository';
+import { ReservationService } from './reservation/reservation.service';
+import { CatalogClient } from './catalog/catalog-client';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController],
+  controllers: [HealthController, ReservationController],
   providers: [
     {
       provide: BOOKING_CONFIG,
@@ -41,6 +45,9 @@ loadDotenv({ path: join(__dirname, '../.env') });
     TransactionRunner,
     BookingInventoryRepository,
     InventoryInitializer,
+    CatalogClient,
+    ReservationRepository,
+    ReservationService,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
   ],

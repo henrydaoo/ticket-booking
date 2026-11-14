@@ -5,6 +5,8 @@ export type BookingConfig = ServiceConfig & {
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
+  catalogServiceUrl: string;
+  reservationDurationSeconds: number;
 };
 
 export const BOOKING_CONFIG = Symbol('BOOKING_CONFIG');
@@ -18,7 +20,19 @@ function requiredEnvironment(
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
+  return value;
+}
 
+function positiveIntegerEnvironment(
+  environment: NodeJS.ProcessEnv,
+  name: string,
+  defaultValue: number,
+): number {
+  const rawValue = environment[name]?.trim();
+  const value = rawValue ? Number(rawValue) : defaultValue;
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
   return value;
 }
 
@@ -40,6 +54,12 @@ export function loadBookingConfig(
     kafkaBrokers,
     kafkaClientId: requiredEnvironment(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: requiredEnvironment(environment, 'KAFKA_GROUP_ID'),
+    catalogServiceUrl: requiredEnvironment(environment, 'CATALOG_SERVICE_URL').replace(/\/+$/, ''),
+    reservationDurationSeconds: positiveIntegerEnvironment(
+      environment,
+      'RESERVATION_DURATION_SECONDS',
+      300,
+    ),
   };
 }
 

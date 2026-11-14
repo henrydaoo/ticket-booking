@@ -19,6 +19,12 @@ showtime inventory idempotently. The consumer replays retained events when it
 has no committed offset, deduplicates by `eventId`, and performs readiness and
 seat writes in one local transaction.
 
+R2.2 exposes authenticated seat-map and reservation boundaries through the
+Gateway. Multi-seat holds use a single Booking transaction, validate current
+Catalog eligibility/prices through REST, persist a five-minute backend
+expiration, and use customer-scoped idempotency keys. Reservation cancellation
+releases only seats still held by that reservation.
+
 Copy `.env.example` to `.env` before starting. Seat initialization,
 reservation, booking, Saga, and outbox behavior are implemented in later R2
 work packages.

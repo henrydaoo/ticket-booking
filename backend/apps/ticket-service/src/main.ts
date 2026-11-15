@@ -25,7 +25,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
     {
       provide: Kafka,
       useFactory: (config: ReturnType<typeof loadTicketConfig>) =>
-        new Kafka({ clientId: config.kafkaClientId, brokers: config.kafkaBrokers }),
+        new Kafka({
+          clientId: config.kafkaClientId,
+          brokers: config.kafkaBrokers,
+          ...config.kafkaSecurity,
+        }),
       inject: [TICKET_CONFIG],
     },
     TicketConsumerLifecycle,

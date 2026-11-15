@@ -44,6 +44,7 @@ loadDotenv({ path: join(__dirname, '../.env') });
         new Kafka({
           clientId: config.kafkaClientId,
           brokers: config.kafkaBrokers,
+          ...config.kafkaSecurity,
         }),
       inject: [BOOKING_CONFIG],
     },

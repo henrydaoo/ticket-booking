@@ -16,6 +16,7 @@ import { CATALOG_EVENT_PRODUCER } from './catalog-outbox.tokens';
         new Kafka({
           clientId: config.kafkaClientId,
           brokers: config.kafkaBrokers,
+          ...config.kafkaSecurity,
         }),
       inject: [CATALOG_CONFIG],
     },

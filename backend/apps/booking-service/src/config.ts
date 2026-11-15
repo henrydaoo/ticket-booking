@@ -1,10 +1,16 @@
-import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
+import {
+  KafkaSecurityOptions,
+  loadKafkaSecurityOptions,
+  loadServiceConfig,
+  ServiceConfig,
+} from '@ticket-booking/config';
 
 export type BookingConfig = ServiceConfig & {
   databaseUrl: string;
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
+  kafkaSecurity: KafkaSecurityOptions;
   catalogServiceUrl: string;
   reservationDurationSeconds: number;
   paymentProcessingDeadlineSeconds: number;
@@ -56,6 +62,7 @@ export function loadBookingConfig(
     kafkaBrokers,
     kafkaClientId: requiredEnvironment(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: requiredEnvironment(environment, 'KAFKA_GROUP_ID'),
+    kafkaSecurity: loadKafkaSecurityOptions(environment),
     catalogServiceUrl: requiredEnvironment(environment, 'CATALOG_SERVICE_URL').replace(/\/+$/, ''),
     reservationDurationSeconds: positiveIntegerEnvironment(
       environment,

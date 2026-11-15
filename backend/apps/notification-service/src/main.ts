@@ -26,7 +26,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
     {
       provide: Kafka,
       useFactory: (config: ReturnType<typeof loadNotificationConfig>) =>
-        new Kafka({ clientId: config.kafkaClientId, brokers: config.kafkaBrokers }),
+        new Kafka({
+          clientId: config.kafkaClientId,
+          brokers: config.kafkaBrokers,
+          ...config.kafkaSecurity,
+        }),
       inject: [NOTIFICATION_CONFIG],
     },
     NotificationConsumerLifecycle,

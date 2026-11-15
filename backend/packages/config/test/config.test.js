@@ -3,6 +3,7 @@ const test = require('node:test');
 const {
   ConfigurationError,
   loadServiceConfig,
+  loadKafkaSecurityOptions,
 } = require('../dist/index.js');
 
 test('loads independent gateway configuration', () => {
@@ -52,6 +53,35 @@ test('rejects invalid ports without exposing configuration values', () => {
         PORT: 'not-a-port',
       }),
     new ConfigurationError('PORT must be an integer between 1 and 65535'),
+  );
+});
+
+test('loads Kafka SASL security options for a managed broker', () => {
+  assert.deepEqual(
+    loadKafkaSecurityOptions({
+      KAFKA_USERNAME: 'avnadmin',
+      KAFKA_PASSWORD: 'secret',
+      KAFKA_SASL_MECHANISM: 'scram-sha-256',
+    }),
+    {
+      ssl: true,
+      sasl: {
+        mechanism: 'scram-sha-256',
+        username: 'avnadmin',
+        password: 'secret',
+      },
+    },
+  );
+});
+
+test('keeps local Kafka configuration without SASL options', () => {
+  assert.deepEqual(loadKafkaSecurityOptions({ KAFKA_BROKERS: 'localhost:9092' }), {});
+});
+
+test('rejects incomplete Kafka SASL credentials', () => {
+  assert.throws(
+    () => loadKafkaSecurityOptions({ KAFKA_USERNAME: 'avnadmin' }),
+    new ConfigurationError('KAFKA_USERNAME and KAFKA_PASSWORD must be provided together'),
   );
 });
 

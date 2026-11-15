@@ -1,9 +1,15 @@
-import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
+import {
+  KafkaSecurityOptions,
+  loadKafkaSecurityOptions,
+  loadServiceConfig,
+  ServiceConfig,
+} from '@ticket-booking/config';
 
 export type CatalogConfig = ServiceConfig & {
   databaseUrl: string;
   kafkaBrokers: string[];
   kafkaClientId: string;
+  kafkaSecurity: KafkaSecurityOptions;
 };
 
 export const CATALOG_CONFIG = Symbol('CATALOG_CONFIG');
@@ -38,6 +44,7 @@ export function loadCatalogConfig(
     databaseUrl: requiredEnvironment(environment, 'DATABASE_URL'),
     kafkaBrokers,
     kafkaClientId: requiredEnvironment(environment, 'KAFKA_CLIENT_ID'),
+    kafkaSecurity: loadKafkaSecurityOptions(environment),
   };
 }
 

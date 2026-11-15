@@ -1,3 +1,4 @@
 # Seat selection feature boundary
 
-Seat selection will consume Booking Service APIs in a later feature phase. No business screen is implemented in Foundation.
+R2.7 loads seat maps through the Gateway and allows only `AVAILABLE` seats to
+be selected. The backend remains authoritative for conflicts and expiry.

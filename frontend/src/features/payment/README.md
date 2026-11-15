@@ -1,3 +1,5 @@
 # Payment feature boundary
 
-Payment screens integrate with the API Gateway and Payment Service boundary. No payment workflow is implemented in Foundation.
+R2.7 starts payments through the Gateway and redirects to the provider URL.
+The return page polls the approved payment-status contract and never infers
+success from browser query parameters.

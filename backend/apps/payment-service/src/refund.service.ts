@@ -81,7 +81,6 @@ export class RefundService {
         updateClient.release();
       }
     } finally {
-      if (!client.release) return;
       client.release();
     }
   }

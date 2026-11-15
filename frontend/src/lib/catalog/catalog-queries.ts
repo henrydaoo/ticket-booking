@@ -15,8 +15,11 @@ export const catalogQueryKeys = {
   showtimes: (filters: Record<string, string>) => ['catalog', 'showtimes', filters] as const,
 };
 
-export function useMoviesQuery() {
-  return useQuery({ queryKey: catalogQueryKeys.movies, queryFn: listMovies });
+export function useMoviesQuery(filters: { search?: string; status?: string } = {}) {
+  return useQuery({
+    queryKey: [...catalogQueryKeys.movies, filters] as const,
+    queryFn: () => listMovies(filters),
+  });
 }
 
 export function useCinemaQuery() {

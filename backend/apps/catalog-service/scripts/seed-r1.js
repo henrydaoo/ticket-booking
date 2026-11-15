@@ -168,6 +168,9 @@ async function seed() {
     for (const [showtime, schedule, status] of showtimeDefinitions) {
       const published = status === 'PUBLISHED';
       const seats = published ? screen.seats : null;
+      const showtimeId = mapId(showtime.id);
+      const movieId = mapId(showtime.movieId);
+      const screenId = mapId(showtime.screenId);
       await client.query(
         `INSERT INTO showtimes
            (id, movie_id, screen_id, start_at, end_at, sale_opens_at, status,
@@ -184,9 +187,9 @@ async function seed() {
              layout_version = EXCLUDED.layout_version, seats = EXCLUDED.seats,
              updated_at = NOW()`,
         [
-          mapId(showtime.id),
-          mapId(showtime.movieId),
-          mapId(showtime.screenId),
+          showtimeId,
+          movieId,
+          screenId,
           schedule.start,
           schedule.end,
           schedule.saleOpens,
@@ -197,6 +200,50 @@ async function seed() {
           seats ? JSON.stringify(seats) : null,
         ],
       );
+
+      if (published) {
+        const occurredAt = new Date();
+        const event = {
+          eventId: showtimeId,
+          eventType: 'ShowtimePublished',
+          schemaVersion: 1,
+          aggregateType: 'Showtime',
+          aggregateId: showtimeId,
+          occurredAt: occurredAt.toISOString(),
+          correlationId: `r1-seed:${showtime.id}`,
+          payload: {
+            showtimeId,
+            movieId,
+            branchId: mapId(screen.branchId),
+            screenId,
+            startAt: schedule.start.toISOString(),
+            endAt: schedule.end.toISOString(),
+            saleOpensAt: schedule.saleOpens.toISOString(),
+            reservationCutoffAt: new Date(schedule.start.getTime() - 15 * 60 * 1000).toISOString(),
+            prices: showtime.prices,
+            pricingVersion: showtime.pricingVersion,
+            layoutVersion: showtime.layoutVersion,
+            seats,
+          },
+        };
+        await client.query(
+          `INSERT INTO catalog_outbox_events
+             (event_id, event_type, schema_version, aggregate_type, aggregate_id,
+              correlation_id, occurred_at, payload)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+           ON CONFLICT (aggregate_id, event_type) DO NOTHING`,
+          [
+            event.eventId,
+            event.eventType,
+            event.schemaVersion,
+            event.aggregateType,
+            event.aggregateId,
+            event.correlationId,
+            occurredAt,
+            JSON.stringify(event),
+          ],
+        );
+      }
     }
 
     await client.query('COMMIT');

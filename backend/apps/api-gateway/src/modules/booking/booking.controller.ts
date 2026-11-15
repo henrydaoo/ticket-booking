@@ -9,6 +9,33 @@ import { BookingProxy } from './booking.proxy';
 export class BookingController {
   constructor(private readonly proxy: BookingProxy) {}
 
+  @Get('bookings')
+  listBookings(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      '/bookings',
+      'GET',
+      correlationId,
+      principalFromRequest(request),
+    );
+  }
+
+  @Get('bookings/:bookingId')
+  getBooking(
+    @Req() request: Request,
+    @Param('bookingId') bookingId: string,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      `/bookings/${encodeURIComponent(bookingId)}`,
+      'GET',
+      correlationId,
+      principalFromRequest(request),
+    );
+  }
+
   @Get('showtimes/:showtimeId/seats')
   seats(
     @Req() request: Request,

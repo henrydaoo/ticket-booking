@@ -34,6 +34,33 @@ export class PaymentProxy {
       if (error instanceof HttpException) throw error;
       throw new ServiceUnavailableException('Payment service is unavailable', { cause: error });
     }
+
+  }
+
+  async status(
+    paymentId: string,
+    correlationId: string | undefined,
+    principal: AuthenticatedPrincipal,
+  ): Promise<unknown> {
+    try {
+      const response = await fetch(
+        `${this.config.paymentServiceUrl}/payments/${encodeURIComponent(paymentId)}`,
+        {
+          method: 'GET',
+          headers: {
+            accept: 'application/json',
+            [CORRELATION_ID_HEADER]: correlationId || '',
+            ...principalHeaders(principal),
+          },
+        },
+      );
+      const responseBody = await response.text();
+      if (!response.ok) throw new HttpException(responseBody, response.status);
+      return responseBody ? JSON.parse(responseBody) : null;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new ServiceUnavailableException('Payment service is unavailable', { cause: error });
+    }
   }
 
   async webhook(correlationId: string | undefined, body: unknown): Promise<unknown> {

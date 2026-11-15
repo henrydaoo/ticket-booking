@@ -137,6 +137,22 @@ export class PaymentRepository {
     return this.toResponse(result.rows[0]);
   }
 
+  async findById(
+    client: PoolClient,
+    paymentId: string,
+    customerId: string,
+  ): Promise<PaymentResponse | null> {
+    const result = await client.query<PaymentRow>(
+      `SELECT id, booking_id, status, amount_vnd, provider, payment_url,
+              processing_deadline_at, customer_id, provider_reference
+       FROM payments
+       WHERE id = $1 AND customer_id = $2`,
+      [paymentId, customerId],
+    );
+    if ((result.rowCount ?? 0) === 0) return null;
+    return this.toResponse(result.rows[0]);
+  }
+
   async createPending(
     client: PoolClient,
     input: {

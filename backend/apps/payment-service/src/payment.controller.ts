@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpCode, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { CORRELATION_ID_HEADER } from './correlation-id.middleware';
 import { principalFromHeaders } from './common/principal';
@@ -7,6 +7,14 @@ import { PaymentService } from './payment.service';
 @Controller('payments')
 export class PaymentController {
   constructor(private readonly service: PaymentService) {}
+
+  @Get(':paymentId')
+  status(
+    @Req() request: Request,
+    @Param('paymentId') paymentId: string,
+  ) {
+    return this.service.status(principalFromHeaders(request.headers), paymentId);
+  }
 
   @Post()
   create(

@@ -7,6 +7,19 @@ import { BookingService } from './booking.service';
 export class BookingController {
   constructor(private readonly service: BookingService) {}
 
+  @Get()
+  list(@Req() request: Request): Promise<unknown> {
+    return this.service.list(principalFromHeaders(request.headers));
+  }
+
+  @Get(':bookingId')
+  findOne(
+    @Req() request: Request,
+    @Param('bookingId') bookingId: string,
+  ): Promise<unknown> {
+    return this.service.findOne(principalFromHeaders(request.headers), bookingId);
+  }
+
   @Get(':bookingId/payment-context')
   paymentContext(
     @Req() request: Request,

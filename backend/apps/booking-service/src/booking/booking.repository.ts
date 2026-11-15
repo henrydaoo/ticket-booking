@@ -209,6 +209,37 @@ export class BookingRepository {
     };
   }
 
+  async listByCustomer(
+    client: PoolClient,
+    customerId: string,
+  ): Promise<BookingResponse[]> {
+    const result = await client.query<BookingRow>(
+      `SELECT id, reservation_id, customer_id, showtime_id, status,
+              total_vnd, payment_deadline_at
+       FROM bookings
+       WHERE customer_id = $1
+       ORDER BY created_at DESC, id DESC`,
+      [customerId],
+    );
+    return Promise.all(result.rows.map((booking) => this.withSeats(client, booking)));
+  }
+
+  async findById(
+    client: PoolClient,
+    bookingId: string,
+    customerId: string,
+  ): Promise<BookingResponse | null> {
+    const result = await client.query<BookingRow>(
+      `SELECT id, reservation_id, customer_id, showtime_id, status,
+              total_vnd, payment_deadline_at
+       FROM bookings
+       WHERE id = $1 AND customer_id = $2`,
+      [bookingId, customerId],
+    );
+    if ((result.rowCount ?? 0) === 0) return null;
+    return this.withSeats(client, result.rows[0]);
+  }
+
   async findByIdempotencyKey(
     client: PoolClient,
     customerId: string,

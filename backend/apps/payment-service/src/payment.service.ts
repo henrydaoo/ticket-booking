@@ -103,6 +103,15 @@ export class PaymentService {
     });
   }
 
+  async status(principal: PaymentPrincipal, paymentId: string): Promise<PaymentResponse> {
+    if (!paymentId) throw new BadRequestException('paymentId is required');
+    const payment = await this.transactions.run((client) =>
+      this.repository.findById(client, paymentId, principal.userId),
+    );
+    if (!payment) throw new NotFoundException('PAYMENT_NOT_FOUND');
+    return payment;
+  }
+
   async processWebhook(
     parameters: Record<string, string>,
     correlationId: string,

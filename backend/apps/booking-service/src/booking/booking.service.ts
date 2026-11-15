@@ -83,4 +83,22 @@ export class BookingService {
       }
     });
   }
+
+  async list(principal: BookingPrincipal): Promise<BookingResponse[]> {
+    return this.transactions.run((client) =>
+      this.repository.listByCustomer(client, principal.userId),
+    );
+  }
+
+  async findOne(
+    principal: BookingPrincipal,
+    bookingId: string,
+  ): Promise<BookingResponse> {
+    if (!bookingId) throw new BadRequestException('bookingId is required');
+    const booking = await this.transactions.run((client) =>
+      this.repository.findById(client, bookingId, principal.userId),
+    );
+    if (!booking) throw new NotFoundException('BOOKING_NOT_FOUND');
+    return booking;
+  }
 }

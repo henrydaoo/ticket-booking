@@ -9,12 +9,22 @@ import { PAYMENT_CONFIG, loadPaymentConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
 import { PaymentConsumerLifecycle } from './consumer.lifecycle';
 import { HealthController } from './health.controller';
-import { ProviderController } from './provider.controller';
+import { PaymentController } from './payment.controller';
+import { TransactionRunner } from './transaction.runner';
+import { PaymentRepository } from './payment.repository';
+import { BookingClient } from './booking.client';
+import { PaymentService } from './payment.service';
+import { VnpayProvider } from './provider/vnpay.provider';
+import { PaymentOutboxLifecycle } from './outbox.lifecycle';
+import { ReconciliationRepository } from './reconciliation.repository';
+import { ReconciliationWorker } from './reconciliation.worker';
+import { RefundRepository } from './refund.repository';
+import { RefundService } from './refund.service';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, ProviderController],
+  controllers: [HealthController, PaymentController],
   providers: [
     { provide: PAYMENT_CONFIG, useFactory: loadPaymentConfig },
     {
@@ -30,6 +40,17 @@ loadDotenv({ path: join(__dirname, '../.env') });
       inject: [PAYMENT_CONFIG],
     },
     PaymentConsumerLifecycle,
+    TransactionRunner,
+    PaymentRepository,
+    BookingClient,
+    PaymentService,
+    VnpayProvider,
+    { provide: 'PAYMENT_PROVIDER', useExisting: VnpayProvider },
+    PaymentOutboxLifecycle,
+    ReconciliationRepository,
+    ReconciliationWorker,
+    RefundRepository,
+    RefundService,
   ],
 })
 class PaymentModule {}

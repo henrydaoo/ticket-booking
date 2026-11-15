@@ -19,13 +19,9 @@ export type AuthProvider = {
 const SESSION_KEY = 'cinema-ticket-booking.session';
 const SESSION_EVENT = 'cinema-ticket-booking.session-change';
 
-export function subscribeToSession(onChange: () => void): () => void {
-  window.addEventListener(SESSION_EVENT, onChange);
-  return () => window.removeEventListener(SESSION_EVENT, onChange);
-}
+let cachedSession: AuthSession | null | undefined;
 
-export function readSession(): AuthSession | null {
-  if (typeof window === 'undefined') return null;
+function readStoredSession(): AuthSession | null {
   const raw = window.sessionStorage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
@@ -36,12 +32,29 @@ export function readSession(): AuthSession | null {
   }
 }
 
+export function subscribeToSession(onChange: () => void): () => void {
+  const handleSessionChange = () => {
+    cachedSession = readStoredSession();
+    onChange();
+  };
+  window.addEventListener(SESSION_EVENT, handleSessionChange);
+  return () => window.removeEventListener(SESSION_EVENT, handleSessionChange);
+}
+
+export function readSession(): AuthSession | null {
+  if (typeof window === 'undefined') return null;
+  if (cachedSession === undefined) cachedSession = readStoredSession();
+  return cachedSession;
+}
+
 export function writeSession(session: AuthSession): void {
   window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  cachedSession = session;
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 
 export function clearStoredSession(): void {
   window.sessionStorage.removeItem(SESSION_KEY);
+  cachedSession = null;
   window.dispatchEvent(new Event(SESSION_EVENT));
 }

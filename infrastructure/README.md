@@ -59,5 +59,29 @@ docker compose --env-file .env -f docker/compose.yml exec postgres pg_isready -U
 docker compose --env-file .env -f docker/compose.yml exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 ```
 
-Both containers report `healthy` after their readiness checks pass. Kafka topics and retention settings remain deferred until the first event-producing service is implemented.
+Both containers report `healthy` after their readiness checks pass. After Kafka becomes healthy, create the R2 event topics from the Kafka
+container. This uses the broker's local listener and avoids the advertised
+`localhost:9092` address intended for host processes:
+
+```powershell
+docker compose --env-file .env -f docker/compose.yml exec kafka `
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 `
+  --create --if-not-exists --topic catalog.showtime-published.v1 `
+  --partitions 1 --replication-factor 1
+
+docker compose --env-file .env -f docker/compose.yml exec kafka `
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 `
+  --create --if-not-exists --topic payment.payment-succeeded.v1 `
+  --partitions 1 --replication-factor 1
+
+docker compose --env-file .env -f docker/compose.yml exec kafka `
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 `
+  --create --if-not-exists --topic payment.payment-failed.v1 `
+  --partitions 1 --replication-factor 1
+
+docker compose --env-file .env -f docker/compose.yml exec kafka `
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 `
+  --create --if-not-exists --topic payment.refund-requested.v1 `
+  --partitions 1 --replication-factor 1
+```
 

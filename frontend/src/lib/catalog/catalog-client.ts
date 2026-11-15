@@ -47,8 +47,12 @@ export type Screen = {
   layoutVersion: number;
 };
 
-export function listMovies(): Promise<Movie[]> {
-  return apiRequest<Movie[]>('/catalog/movies');
+export function listMovies(filters: { search?: string; status?: string } = {}): Promise<Movie[]> {
+  const query = new URLSearchParams();
+  if (filters.search) query.set('search', filters.search);
+  if (filters.status) query.set('status', filters.status);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiRequest<Movie[]>(`/catalog/movies${suffix}`);
 }
 
 export function listCinemas(): Promise<Cinema[]> {

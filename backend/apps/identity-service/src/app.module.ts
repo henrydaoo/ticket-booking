@@ -4,8 +4,10 @@ import { AuthService } from './modules/auth/auth.service';
 import {
   EMAIL_DELIVERY,
 } from './modules/auth/ports/email-delivery.port';
+import { IDENTITY_CONFIG, loadIdentityConfig } from './config/config';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { LocalEmailDeliveryAdapter } from './infrastructure/email/local-email-delivery.adapter';
+import { SmtpEmailDeliveryAdapter } from './infrastructure/email/smtp-email-delivery.adapter';
 import { IdentityRepository } from './modules/auth/auth.repository';
 import { HealthModule } from './modules/health/health.module';
 import { JwksController } from './modules/auth/jwks.controller';
@@ -27,7 +29,14 @@ import { TransactionRunner } from './infrastructure/database/transaction.runner'
     LocalEmailDeliveryAdapter,
     {
       provide: EMAIL_DELIVERY,
-      useExisting: LocalEmailDeliveryAdapter,
+      inject: [IDENTITY_CONFIG, LocalEmailDeliveryAdapter],
+      useFactory: (
+        config: ReturnType<typeof loadIdentityConfig>,
+        local: LocalEmailDeliveryAdapter,
+      ) =>
+        config.emailDeliveryMode === 'smtp'
+          ? new SmtpEmailDeliveryAdapter(config)
+          : local,
     },
   ],
 })

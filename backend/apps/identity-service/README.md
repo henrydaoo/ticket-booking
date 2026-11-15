@@ -46,6 +46,10 @@ The local email adapter captures verification and password-reset links for
 local development and automated tests. Raw tokens are not returned in HTTP
 responses.
 
+Production deployments must set `EMAIL_DELIVERY_MODE=smtp` and provide the
+SMTP variables in `.env` or the deployment secret manager. Missing SMTP
+configuration fails startup; it never silently falls back to local delivery.
+
 Access tokens are signed with the configured RSA private key. Refresh tokens
 are stored only as SHA-256 hashes and are rotated on refresh. Email
 verification, password reset, and refresh-token state are owned by

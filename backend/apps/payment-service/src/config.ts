@@ -1,4 +1,9 @@
-import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
+import {
+  KafkaSecurityOptions,
+  loadKafkaSecurityOptions,
+  loadServiceConfig,
+  ServiceConfig,
+} from '@ticket-booking/config';
 
 export type PaymentConfig = ServiceConfig & {
   databaseUrl: string;
@@ -6,6 +11,7 @@ export type PaymentConfig = ServiceConfig & {
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
+  kafkaSecurity: KafkaSecurityOptions;
   vnpayPaymentUrl: string;
   vnpayApiUrl: string;
   vnpayTmnCode: string;
@@ -51,6 +57,7 @@ export function loadPaymentConfig(environment: NodeJS.ProcessEnv = process.env):
     kafkaBrokers: brokers,
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),
+    kafkaSecurity: loadKafkaSecurityOptions(environment),
     vnpayPaymentUrl: required(environment, 'VNPAY_PAYMENT_URL'),
     vnpayApiUrl: required(environment, 'VNPAY_API_URL'),
     vnpayTmnCode: required(environment, 'VNPAY_TMN_CODE'),

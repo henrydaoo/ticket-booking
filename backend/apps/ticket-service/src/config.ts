@@ -1,10 +1,16 @@
-import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
+import {
+  KafkaSecurityOptions,
+  loadKafkaSecurityOptions,
+  loadServiceConfig,
+  ServiceConfig,
+} from '@ticket-booking/config';
 
 export type TicketConfig = ServiceConfig & {
   databaseUrl: string;
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
+  kafkaSecurity: KafkaSecurityOptions;
 };
 
 export const TICKET_CONFIG = Symbol('TICKET_CONFIG');
@@ -31,6 +37,7 @@ export function loadTicketConfig(environment: NodeJS.ProcessEnv = process.env): 
     kafkaBrokers: brokers,
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),
+    kafkaSecurity: loadKafkaSecurityOptions(environment),
   };
 }
 

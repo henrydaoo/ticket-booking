@@ -1,10 +1,16 @@
-import { loadServiceConfig, ServiceConfig } from '@ticket-booking/config';
+import {
+  KafkaSecurityOptions,
+  loadKafkaSecurityOptions,
+  loadServiceConfig,
+  ServiceConfig,
+} from '@ticket-booking/config';
 
 export type NotificationConfig = ServiceConfig & {
   databaseUrl: string;
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
+  kafkaSecurity: KafkaSecurityOptions;
   emailProviderBaseUrl: string;
   emailProviderApiKey: string;
 };
@@ -35,6 +41,7 @@ export function loadNotificationConfig(
     kafkaBrokers: brokers,
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),
+    kafkaSecurity: loadKafkaSecurityOptions(environment),
     emailProviderBaseUrl: required(environment, 'EMAIL_PROVIDER_BASE_URL'),
     emailProviderApiKey: required(environment, 'EMAIL_PROVIDER_API_KEY'),
   };

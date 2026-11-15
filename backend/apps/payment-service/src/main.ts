@@ -36,7 +36,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
     {
       provide: Kafka,
       useFactory: (config: ReturnType<typeof loadPaymentConfig>) =>
-        new Kafka({ clientId: config.kafkaClientId, brokers: config.kafkaBrokers }),
+        new Kafka({
+          clientId: config.kafkaClientId,
+          brokers: config.kafkaBrokers,
+          ...config.kafkaSecurity,
+        }),
       inject: [PAYMENT_CONFIG],
     },
     PaymentConsumerLifecycle,

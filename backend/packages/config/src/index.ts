@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 export type NodeEnvironment = 'development' | 'test' | 'production';
 
 export type ServiceConfig = {
@@ -5,6 +7,14 @@ export type ServiceConfig = {
   port: number;
   nodeEnvironment: NodeEnvironment;
   logLevel: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+};
+
+export type KafkaSecurityOptions = {
+  ssl?: true | { ca: string[] };
+  sasl?:
+    | { mechanism: 'plain'; username: string; password: string }
+    | { mechanism: 'scram-sha-256'; username: string; password: string }
+    | { mechanism: 'scram-sha-512'; username: string; password: string };
 };
 
 export class ConfigurationError extends Error {
@@ -22,6 +32,64 @@ const LOG_LEVELS = new Set<ServiceConfig['logLevel']>([
   'debug',
   'trace',
 ]);
+
+function optionalValue(environment: NodeJS.ProcessEnv, name: string): string | undefined {
+  const value = environment[name]?.trim();
+  return value || undefined;
+}
+
+function parseBoolean(environment: NodeJS.ProcessEnv, name: string, defaultValue: boolean): boolean {
+  const rawValue = optionalValue(environment, name);
+  if (!rawValue) return defaultValue;
+  if (rawValue === 'true') return true;
+  if (rawValue === 'false') return false;
+  throw new ConfigurationError(`${name} must be true or false`);
+}
+
+export function loadKafkaSecurityOptions(
+  environment: NodeJS.ProcessEnv = process.env,
+): KafkaSecurityOptions {
+  const username = optionalValue(environment, 'KAFKA_USERNAME');
+  const password = optionalValue(environment, 'KAFKA_PASSWORD');
+
+  if (!username && !password) {
+    return {};
+  }
+  if (!username || !password) {
+    throw new ConfigurationError(
+      'KAFKA_USERNAME and KAFKA_PASSWORD must be provided together',
+    );
+  }
+
+  if (!parseBoolean(environment, 'KAFKA_SSL', true)) {
+    throw new ConfigurationError('KAFKA_SSL must be true when Kafka SASL is configured');
+  }
+
+  const mechanism = optionalValue(environment, 'KAFKA_SASL_MECHANISM')?.toLowerCase();
+  if (
+    mechanism !== 'plain' &&
+    mechanism !== 'scram-sha-256' &&
+    mechanism !== 'scram-sha-512'
+  ) {
+    throw new ConfigurationError(
+      'KAFKA_SASL_MECHANISM must be plain, scram-sha-256, or scram-sha-512',
+    );
+  }
+
+  const caPath = optionalValue(environment, 'KAFKA_CA_CERT_PATH');
+  const ssl = caPath
+    ? { ca: [readFileSync(caPath, 'utf8')] }
+    : true;
+
+  const sasl =
+    mechanism === 'plain'
+      ? { mechanism: 'plain' as const, username, password }
+      : mechanism === 'scram-sha-256'
+        ? { mechanism: 'scram-sha-256' as const, username, password }
+        : { mechanism: 'scram-sha-512' as const, username, password };
+
+  return { ssl, sasl };
+}
 
 function requiredValue(environment: NodeJS.ProcessEnv, name: string): string {
   const value = environment[name]?.trim();

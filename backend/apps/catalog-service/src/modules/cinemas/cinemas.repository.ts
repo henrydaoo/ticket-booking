@@ -12,6 +12,31 @@ export class CinemasRepository {
     return result.rows;
   }
 
+  async getCinema(cinemaId: string): Promise<unknown | undefined> {
+    const cinemaResult = await this.database.query(
+      'SELECT id, name FROM cinemas WHERE id = $1',
+      [cinemaId],
+    );
+    if (cinemaResult.rowCount !== 1) {
+      return undefined;
+    }
+    const branches = await this.database.query(
+      `SELECT id, cinema_id AS "cinemaId", name, address
+       FROM branches WHERE cinema_id = $1 ORDER BY name ASC`,
+      [cinemaId],
+    );
+    const screens = await this.database.query(
+      `SELECT s.id, s.branch_id AS "branchId", s.name, s.capacity,
+              s.layout_version AS "layoutVersion"
+       FROM screens s
+       JOIN branches b ON b.id = s.branch_id
+       WHERE b.cinema_id = $1
+       ORDER BY s.name ASC`,
+      [cinemaId],
+    );
+    return { ...cinemaResult.rows[0], branches: branches.rows, screens: screens.rows };
+  }
+
   async createCinema(id: string, name: string): Promise<unknown> {
     const result = await this.database.query(
       'INSERT INTO cinemas (id, name) VALUES ($1, $2) RETURNING id, name',

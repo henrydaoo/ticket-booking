@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { CreateBranchDto, CreateCinemaDto } from './dto/cinema.dto';
 import { Request } from 'express';
 import { principalFromHeaders } from '../../common/principal';
@@ -11,6 +11,11 @@ export class CinemasController {
   @Get('cinemas')
   cinemas(): Promise<unknown[]> {
     return this.catalog.listCinemas();
+  }
+
+  @Get('cinemas/:cinemaId')
+  cinema(@Param('cinemaId') cinemaId: string): Promise<unknown> {
+    return this.catalog.getCinema(cinemaId);
   }
 
   @Post('cinemas')

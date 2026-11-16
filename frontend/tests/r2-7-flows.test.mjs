@@ -22,7 +22,7 @@ test('R2.7 uses backend expiry and safe conflict handling', () => {
   assert.match(flow, /react-hook-form/);
 });
 
-test('R2.7 adds booking history to the protected account page', () => {
-  assert.match(read('src/app/(customer)/account/page.tsx'), /BookingHistory/);
-  assert.match(read('src/features/booking/booking-history.tsx'), /useBookingsQuery/);
+test('R2.7 gives booking history its own protected customer page', () => {
+  assert.match(read('src/app/(customer)/account/bookings/page.tsx'), /ProtectedRoute/);
+  assert.match(read('src/features/booking/my-tickets-page.tsx'), /useBookingsQuery/);
 });

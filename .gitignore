@@ -35,6 +35,10 @@ docs/releases/r2/*
 .cache/
 .turbo/
 .eslintcache
+run-local.ps1
+
+# Local UI reference (not part of the project)
+gemini-antigravity-for-booking/
 
 # Operating system files
 .DS_Store

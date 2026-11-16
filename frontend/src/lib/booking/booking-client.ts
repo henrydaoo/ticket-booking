@@ -8,6 +8,8 @@ export type Seat = {
   type: 'STANDARD' | 'VIP' | 'COUPLE';
   priceVnd: number;
   status: SeatStatus;
+  row?: string;
+  number?: number;
 };
 
 export type SeatMap = {

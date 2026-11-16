@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { CatalogPrincipal, requirePlatformAdmin } from '../../common/principal';
 import { withCatalogConflictMapping } from '../../common/catalog-conflict';
@@ -11,6 +11,14 @@ export class CinemasService {
 
   listCinemas(): Promise<unknown[]> {
     return this.repository.listCinemas();
+  }
+
+  async getCinema(cinemaId: string): Promise<unknown> {
+    const cinema = await this.repository.getCinema(cinemaId);
+    if (!cinema) {
+      throw new NotFoundException('Cinema not found');
+    }
+    return cinema;
   }
 
   async createCinema(principal: CatalogPrincipal, input: CreateCinemaDto): Promise<unknown> {

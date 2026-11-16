@@ -1,17 +1,215 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
   --background: #09090b;
-  --foreground: #fafafa;
+  --foreground: #f4f4f5;
+  --muted: #a1a1aa;
+  --surface: #18181b;
+  --surface-raised: #27272a;
+  --accent: #f59e0b;
+  --accent-strong: #fbbf24;
+  --obsidian: #07080c;
+  --ink: #0d1017;
+  --line: rgb(255 255 255 / 0.1);
 }
 
 * {
-  border-color: #27272a;
+  border-color: var(--line);
 }
 
 body {
   margin: 0;
-  background: var(--background);
+  min-width: 320px;
+  background:
+    radial-gradient(circle at 12% 0%, rgb(120 53 15 / 0.22), transparent 32rem),
+    radial-gradient(circle at 90% 16%, rgb(30 41 59 / 0.18), transparent 28rem),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+::selection {
+  background: rgb(245 158 11 / 0.35);
+  color: white;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: #27272a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+.cinema-screen-curve {
+  position: relative;
+  border-top: 3px solid #f59e0b;
+  border-radius: 50% 50% 0 0 / 22px 22px 0 0;
+  background: linear-gradient(180deg, rgb(245 158 11 / 0.4), rgb(245 158 11 / 0.05) 75%, transparent);
+  box-shadow: 0 -12px 35px -4px rgb(245 158 11 / 0.45);
+}
+
+.moonlight-surface {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 1rem;
+  background: #121215;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.2);
+}
+
+.moonlight-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(90deg, rgb(7 8 12 / 0.98), rgb(7 8 12 / 0.76) 48%, rgb(7 8 12 / 0.2)),
+    radial-gradient(circle at 82% 35%, rgb(245 158 11 / 0.36), transparent 28rem),
+    #121215;
+}
+
+.moonlight-hero::after {
+  position: absolute;
+  z-index: -1;
+  right: 8%;
+  bottom: -30%;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 50%;
+  background: rgb(245 158 11 / 0.18);
+  content: "";
+  filter: blur(80px);
+}
+
+.poster-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  border-radius: 1rem;
+  background: #121215;
+}
+
+.poster-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms ease;
+}
+
+.poster-frame:hover img {
+  transform: scale(1.05);
+}
+
+.showtime-card {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 1rem;
+  background: #121215;
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.showtime-card:hover {
+  transform: translateY(-2px);
+  border-color: rgb(245 158 11 / 0.45);
+  background: #17171c;
+}
+
+.ticket-stub {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 1rem;
+  background: #121215;
+}
+
+.ticket-stub::before,
+.ticket-stub::after {
+  position: absolute;
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #09090b;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.ticket-stub::before {
+  left: -0.5rem;
+}
+
+.ticket-stub::after {
+  right: -0.5rem;
+}
+
+.page-btn {
+  display: inline-flex;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0.625rem;
+  background: #121215;
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 0.2);
+  background: #1f1f26;
+  color: white;
+}
+
+.page-btn.active {
+  border-color: #fbbf24;
+  background: #f59e0b;
+  color: #09090b;
 }

@@ -41,6 +41,8 @@ test('registration and verification are discoverable from the auth form', () => 
   assert.match(authForm, /href="\/register"/);
   assert.match(authForm, /href="\/login"/);
   assert.match(authForm, /window\.location\.search/);
+  assert.match(authForm, /mutation\.mutate/);
+  assert.doesNotMatch(authForm, /Verification or reset token<Input/);
 });
 
 test('R1 discovery modules expose the approved public Catalog reads', () => {
@@ -50,7 +52,28 @@ test('R1 discovery modules expose the approved public Catalog reads', () => {
   }
 });
 
+test('public discovery preserves filters and only offers eligible showtimes', () => {
+  const movies = read('src/features/movie-discovery/movies-page.tsx');
+  const pill = read('src/features/cinema-showtimes/showtime-pill.tsx');
+  assert.match(movies, /movieStatus/);
+  assert.match(movies, /search/);
+  assert.match(pill, /showtime\.bookingEligible/);
+  assert.match(pill, /\/booking\/showtimes\//);
+});
+
 test('Gateway-backed server state uses the shared TanStack Query provider', () => {
   assert.match(read('src/app/layout.tsx'), /QueryProvider/);
   assert.match(read('src/lib/catalog/catalog-queries.ts'), /useQuery/);
+});
+
+test('R1 operator workspaces expose backend-backed catalog mutations by role', () => {
+  const catalogClient = read('src/lib/catalog/catalog-client.ts');
+  for (const endpoint of ['/catalog/movies', '/catalog/cinemas', '/catalog/branches', '/catalog/screens', '/catalog/showtimes']) {
+    assert.equal(catalogClient.includes(endpoint), true, endpoint);
+  }
+  assert.match(read('src/features/catalog/admin-page.tsx'), /Tạo Phim Mới/);
+  assert.match(read('src/features/catalog/admin-page.tsx'), /posterUrl/);
+  assert.match(read('src/features/catalog/manager-page.tsx'), /Lập Suất Chiếu Mới/);
+  assert.match(read('src/features/catalog/manager-page.tsx'), /Xuất bản/);
+  assert.match(read('src/components/layout/app-shell.tsx'), /Quản Trị Hệ Thống/);
 });

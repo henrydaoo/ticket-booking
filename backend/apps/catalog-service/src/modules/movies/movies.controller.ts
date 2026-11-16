@@ -16,6 +16,11 @@ export class MoviesController {
     return this.catalog.listMovies(search, status);
   }
 
+  @Get('movies/:movieId')
+  movie(@Param('movieId') movieId: string): Promise<unknown> {
+    return this.catalog.getMovie(movieId);
+  }
+
   @Post('movies')
   createMovie(@Req() request: Request, @Body() body: CreateMovieDto): Promise<unknown> {
     return this.catalog.createMovie(principalFromHeaders(request.headers), body);

@@ -14,17 +14,22 @@ pnpm run migrate
 pnpm start
 ```
 
-The local R1 seed also loads the deterministic cinema, movie, screen, seat,
-price, and showtime data used by the frontend:
+The local R1-R2 seed also loads deterministic cinema, movie, screen, seat,
+price, showtime, booking, and payment data used by the frontend:
 
 ```powershell
 Set-Location D:\beandrew\developer\ticket-booking\backend
-pnpm seed:r1
+pnpm run seed:r1-r2
 ```
 
-The seed is explicit and idempotent. It creates one currently eligible
-published showtime, one future-sale published showtime, and one draft
-showtime. It uses only local development databases.
+The seed is explicit and idempotent. It adds ten movies and ten published
+showtimes to the three existing R1 fixture movies/showtimes, and creates ten
+records in each R1-R2 workflow database. The local Catalog total is therefore
+thirteen movies and thirteen showtimes. It uses only local development
+databases and leaves R3 Ticket/Notification databases untouched.
+If a previous local run left an invalid `ShowtimePublished` message in Kafka,
+start the root runner with `-RecreateKafkaTopics` to clear only local Kafka
+topics before the seeded events are published; PostgreSQL volumes are retained.
 
 Public discovery returns published showtimes. Managers create drafts, set
 screen seat-type prices, and publish drafts. Publishing snapshots the prices

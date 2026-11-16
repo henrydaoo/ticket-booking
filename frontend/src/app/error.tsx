@@ -8,5 +8,5 @@ export default function GlobalError({
 }: {
   reset: () => void;
 }) {
-  return <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6"><div className="space-y-4 text-center"><StatusMessage>Something went wrong</StatusMessage><Button onClick={reset}>Try again</Button></div></main>;
+  return <main className="flex min-h-screen items-center justify-center bg-[#09090B] px-6"><div className="space-y-4 text-center"><StatusMessage>Đã có lỗi xảy ra</StatusMessage><Button onClick={reset}>Thử lại</Button></div></main>;
 }

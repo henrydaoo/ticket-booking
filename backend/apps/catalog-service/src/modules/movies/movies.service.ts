@@ -13,6 +13,14 @@ export class MoviesService {
     return this.repository.listMovies(search, status);
   }
 
+  async getMovie(movieId: string): Promise<unknown> {
+    const movie = await this.repository.findMovie(movieId);
+    if (!movie) {
+      throw new NotFoundException('Movie not found');
+    }
+    return movie;
+  }
+
   async createMovie(principal: CatalogPrincipal, input: CreateMovieDto): Promise<unknown> {
     requirePlatformAdmin(principal);
     return withCatalogConflictMapping(() =>

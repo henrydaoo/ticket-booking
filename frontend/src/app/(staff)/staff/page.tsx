@@ -1,11 +1,23 @@
+'use client';
+
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import { AppShell } from '@/components/layout/app-shell';
+import { ManagerPage } from '@/features/catalog/manager-page';
+import { StaffPage } from '@/features/catalog/staff-page';
+import { useSyncExternalStore } from 'react';
+import { readSession, subscribeToSession } from '@/lib/auth/auth-boundary';
+
+function StaffWorkspace() {
+  const session = useSyncExternalStore(subscribeToSession, readSession, () => null);
+  const roles = session?.user.roles ?? [];
+  return roles.includes('CINEMA_MANAGER') || roles.includes('PLATFORM_ADMIN') ? <ManagerPage view="showtimes" /> : <StaffPage />;
+}
 
 export default function StaffBoundary() {
   return (
     <AppShell>
-      <ProtectedRoute roles={['CINEMA_MANAGER', 'PLATFORM_ADMIN']}>
-        <section className="mx-auto max-w-3xl space-y-4"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">Staff portal</p><h1 className="text-4xl font-semibold text-white">Catalog operations</h1><p className="text-zinc-400">Management actions remain subject to Catalog branch authorization.</p></section>
+      <ProtectedRoute roles={['CINEMA_STAFF', 'CINEMA_MANAGER', 'PLATFORM_ADMIN']}>
+        <StaffWorkspace />
       </ProtectedRoute>
     </AppShell>
   );

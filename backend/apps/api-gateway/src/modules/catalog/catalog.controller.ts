@@ -16,13 +16,34 @@ export class CatalogController {
   }
 
   @Get('movies')
-  movies(@Headers(CORRELATION_ID_HEADER) correlationId?: string): Promise<unknown> {
-    return this.proxy.forward('/movies', correlationId);
+  movies(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    const queryIndex = request.originalUrl.indexOf('?');
+    const query = queryIndex < 0 ? '' : request.originalUrl.slice(queryIndex);
+    return this.proxy.forward(`/movies${query}`, correlationId);
+  }
+
+  @Get('movies/:movieId')
+  movie(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(`/movies/${request.params.movieId}`, correlationId);
   }
 
   @Get('cinemas')
   cinemas(@Headers(CORRELATION_ID_HEADER) correlationId?: string): Promise<unknown> {
     return this.proxy.forward('/cinemas', correlationId);
+  }
+
+  @Get('cinemas/:cinemaId')
+  cinema(
+    @Req() request: Request,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(`/cinemas/${request.params.cinemaId}`, correlationId);
   }
 
   @Get('branches')

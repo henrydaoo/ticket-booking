@@ -8,11 +8,11 @@ export function AsyncState({
 }: {
   loading: boolean;
   error?: string;
-  empty?: boolean;
+  empty?: boolean | ReactNode;
   children: ReactNode;
 }) {
   if (loading) return <p role="status">Loading...</p>;
   if (error) return <p role="alert">{error}</p>;
-  if (empty) return <p>No results found.</p>;
+  if (empty) return empty === true ? <p>No results found.</p> : empty;
   return children;
 }

@@ -144,6 +144,8 @@ export function MyTicketsPage() {
                   </div>
                   <h2 className="font-display text-base font-bold text-white">{movie?.title ?? 'Phim'}</h2>
                   <p className="text-xs text-neutral-400">{branch?.name ?? 'Rạp'} · {formatDateTime(showtime?.startAt)} · {booking.seats.length} ghế</p>
+                  {booking.status === 'REFUND_PENDING' ? <p className="text-xs text-amber-200">Yêu cầu hoàn tiền đang được xử lý.</p> : null}
+                  {booking.status === 'REFUNDED' ? <p className="text-xs text-emerald-200">Khoản tiền của đơn này đã được hoàn.</p> : null}
                 </div>
                 <div className="flex shrink-0 flex-col justify-between gap-2.5 border-t border-white/5 pt-3 sm:items-end sm:border-t-0 sm:pt-0">
                   <span className="font-display text-base font-bold tabular-nums text-amber-400">{fmtVnd(booking.totalVnd)}</span>

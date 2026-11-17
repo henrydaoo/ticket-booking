@@ -11,6 +11,7 @@ import { useBranchesQuery, useCreateShowtimeMutation, useMoviesQuery, usePublish
 import { buildDates, dayRange, fmtDuration, fmtTime } from '@/lib/moonlight-format';
 import { CreateScreenModal } from './create-screen-modal';
 import { OPS_INPUT, OPS_LABEL, OpsModal, OpsTabs } from './ops-ui';
+import { CheckInPage } from '@/features/check-in/check-in-page';
 
 const showtimeSchema = z.object({
   movieId: z.string().min(1, 'Vui lòng chọn phim.'),
@@ -20,7 +21,7 @@ const showtimeSchema = z.object({
 });
 type ShowtimeValues = z.infer<typeof showtimeSchema>;
 
-export function ManagerPage({ view = 'showtimes' }: { view?: 'showtimes' | 'screens' }) {
+export function ManagerPage({ view = 'showtimes' }: { view?: 'showtimes' | 'screens' | 'check-in' }) {
   const session = useSyncExternalStore(subscribeToSession, readSession, () => null);
   const dates = useMemo(() => buildDates(), []);
   const [date, setDate] = useState(dates[0].value);
@@ -64,10 +65,11 @@ export function ManagerPage({ view = 'showtimes' }: { view?: 'showtimes' | 'scre
         <OpsTabs items={[
           { key: 'showtimes', icon: '📅', label: 'Lập Lịch Suất Chiếu', short: 'Suất chiếu', active: view === 'showtimes', href: '/staff/showtimes' },
           { key: 'screens', icon: '💺', label: 'Phòng Chiếu & Ghế', short: 'Sơ đồ ghế', active: view === 'screens', href: '/staff/screens' },
+          { key: 'check-in', icon: '🎟️', label: 'Soát Vé & Đảo Check-in', short: 'Soát vé', active: view === 'check-in', href: '/staff/check-in' },
         ]} />
       </div>
 
-      {view === 'showtimes' ? (
+      {view === 'check-in' ? <CheckInPage /> : view === 'showtimes' ? (
         <div className="space-y-6">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>

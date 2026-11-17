@@ -15,6 +15,7 @@ import { PaymentRepository } from './payment.repository';
 import { BookingClient } from './booking.client';
 import { PaymentService } from './payment.service';
 import { VnpayProvider } from './provider/vnpay.provider';
+import { ResilientPaymentProvider } from './provider/resilient-payment.provider';
 import { PaymentOutboxLifecycle } from './outbox.lifecycle';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationWorker } from './reconciliation.worker';
@@ -49,7 +50,12 @@ loadDotenv({ path: join(__dirname, '../.env') });
     BookingClient,
     PaymentService,
     VnpayProvider,
-    { provide: 'PAYMENT_PROVIDER', useExisting: VnpayProvider },
+    {
+      provide: ResilientPaymentProvider,
+      useFactory: (provider: VnpayProvider) => new ResilientPaymentProvider(provider),
+      inject: [VnpayProvider],
+    },
+    { provide: 'PAYMENT_PROVIDER', useExisting: ResilientPaymentProvider },
     PaymentOutboxLifecycle,
     ReconciliationRepository,
     ReconciliationWorker,

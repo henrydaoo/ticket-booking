@@ -8,6 +8,8 @@ import { PaymentOrchestrator } from './booking/payment-orchestrator';
 export const SHOWTIME_PUBLISHED_TOPIC = 'catalog.showtime-published.v1';
 export const PAYMENT_SUCCEEDED_TOPIC = 'payment.payment-succeeded.v1';
 export const PAYMENT_FAILED_TOPIC = 'payment.payment-failed.v1';
+export const REFUND_COMPLETED_TOPIC = 'payment.refund-completed.v1';
+export const REFUND_FAILED_TOPIC = 'payment.refund-failed.v1';
 
 @Injectable()
 export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
@@ -33,6 +35,8 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
       });
       await this.consumer.subscribe({ topic: PAYMENT_SUCCEEDED_TOPIC, fromBeginning: true });
       await this.consumer.subscribe({ topic: PAYMENT_FAILED_TOPIC, fromBeginning: true });
+      await this.consumer.subscribe({ topic: REFUND_COMPLETED_TOPIC, fromBeginning: true });
+      await this.consumer.subscribe({ topic: REFUND_FAILED_TOPIC, fromBeginning: true });
       void this.consumer.run({
         eachMessage: async ({ topic, message }) => {
           if (!message.value) {

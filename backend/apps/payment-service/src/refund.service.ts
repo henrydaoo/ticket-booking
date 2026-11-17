@@ -73,6 +73,32 @@ export class RefundService {
           event.payload.paymentId,
           result.status === 'SUCCEEDED' ? 'REFUNDED' : 'REFUND_PENDING',
         );
+        await updateClient.query(
+          `INSERT INTO payment_outbox_events
+             (event_type, schema_version, aggregate_id, correlation_id, payload)
+           VALUES ($1, 1, $2, $3, $4::jsonb)`,
+          [
+            result.status === 'SUCCEEDED' ? 'RefundCompleted' : 'RefundFailed',
+            event.payload.paymentId,
+            event.payload.bookingId,
+            JSON.stringify({
+              eventId: `${refund.id}:${result.status === 'SUCCEEDED' ? 'RefundCompleted' : 'RefundFailed'}`,
+              eventType: result.status === 'SUCCEEDED' ? 'RefundCompleted' : 'RefundFailed',
+              schemaVersion: 1,
+              aggregateType: 'Refund',
+              aggregateId: refund.id,
+              occurredAt: new Date().toISOString(),
+              correlationId: event.payload.bookingId,
+              payload: {
+                bookingId: event.payload.bookingId,
+                paymentId: event.payload.paymentId,
+                refundId: refund.id,
+                status: result.status,
+                responseCode: result.responseCode,
+              },
+            }),
+          ],
+        );
         await updateClient.query('COMMIT');
       } catch (error) {
         await updateClient.query('ROLLBACK');

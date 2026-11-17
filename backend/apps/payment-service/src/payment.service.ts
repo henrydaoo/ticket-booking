@@ -24,6 +24,10 @@ export class PaymentService {
     @Inject(PAYMENT_CONFIG) private readonly config: PaymentConfig,
   ) {}
 
+  internalServiceSecret(): string {
+    return this.config.internalServiceSecret;
+  }
+
   async create(
     principal: PaymentPrincipal,
     input: { bookingId: string; idempotencyKey: string },

@@ -25,11 +25,23 @@ export class BookingWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
           error instanceof Error ? error.stack : String(error),
         );
       });
+      void this.recoverSagas().catch((error: unknown) => {
+        this.logger.error(
+          'Booking Saga recovery failed',
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
     }, this.config.reservationExpirationIntervalSeconds * 1000);
     this.timer.unref();
     void this.expireOnce().catch((error: unknown) => {
       this.logger.error(
         'Reservation expiration failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
+    void this.recoverSagas().catch((error: unknown) => {
+      this.logger.error(
+        'Booking Saga recovery failed',
         error instanceof Error ? error.stack : String(error),
       );
     });
@@ -53,6 +65,19 @@ export class BookingWorkerLifecycle implements OnModuleInit, OnModuleDestroy {
       .run((client) => this.repository.expireDueReservations(client, 100))
       .then((count) => {
         if (count > 0) this.logger.log(`Expired ${count} reservation(s)`);
+      })
+      .finally(() => {
+        this.activeRun = undefined;
+      });
+    await this.activeRun;
+  }
+
+  private async recoverSagas(): Promise<void> {
+    if (!this.started || this.activeRun) return this.activeRun;
+    this.activeRun = this.transactions
+      .run((client) => this.repository.recoverCompensatingSagas(client, 50))
+      .then((count) => {
+        if (count > 0) this.logger.log(`Recovered ${count} compensating Saga(s)`);
       })
       .finally(() => {
         this.activeRun = undefined;

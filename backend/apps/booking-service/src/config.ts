@@ -12,6 +12,8 @@ export type BookingConfig = ServiceConfig & {
   kafkaGroupId: string;
   kafkaSecurity: KafkaSecurityOptions;
   catalogServiceUrl: string;
+  paymentServiceUrl: string;
+  internalServiceSecret: string;
   reservationDurationSeconds: number;
   paymentProcessingDeadlineSeconds: number;
   reservationExpirationIntervalSeconds: number;
@@ -64,6 +66,8 @@ export function loadBookingConfig(
     kafkaGroupId: requiredEnvironment(environment, 'KAFKA_GROUP_ID'),
     kafkaSecurity: loadKafkaSecurityOptions(environment),
     catalogServiceUrl: requiredEnvironment(environment, 'CATALOG_SERVICE_URL').replace(/\/+$/, ''),
+    paymentServiceUrl: requiredEnvironment(environment, 'PAYMENT_SERVICE_URL').replace(/\/+$/, ''),
+    internalServiceSecret: requiredEnvironment(environment, 'INTERNAL_SERVICE_SECRET'),
     reservationDurationSeconds: positiveIntegerEnvironment(
       environment,
       'RESERVATION_DURATION_SECONDS',

@@ -91,7 +91,7 @@ export function createPayment(input: {
   bookingId: string;
   idempotencyKey: string;
 }): Promise<Payment> {
-  return apiRequest<Payment>('/payment/payments', {
+  return apiRequest<Payment>(`/booking/bookings/${encodeURIComponent(input.bookingId)}/payment`, {
     method: 'POST',
     body: JSON.stringify(input),
   });

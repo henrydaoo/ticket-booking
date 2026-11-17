@@ -8,6 +8,7 @@ test('payment configuration validates provider and Kafka boundaries', () => {
     PORT: '3004',
     DATABASE_URL: 'postgresql://payment',
     BOOKING_SERVICE_URL: 'http://localhost:3003',
+    INTERNAL_SERVICE_SECRET: 'internal-secret',
     KAFKA_BROKERS: 'localhost:9092',
     KAFKA_CLIENT_ID: 'payment-service',
     KAFKA_GROUP_ID: 'payment-foundation',

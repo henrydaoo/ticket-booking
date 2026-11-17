@@ -24,7 +24,7 @@ export type PaymentContext = {
 
 export type PaymentEvent = {
   eventId: string;
-  eventType: 'PaymentSucceeded' | 'PaymentFailed';
+  eventType: 'PaymentSucceeded' | 'PaymentFailed' | 'RefundCompleted' | 'RefundFailed';
   correlationId: string;
   payload: {
     paymentId: string;
@@ -48,6 +48,19 @@ export class BookingRepository {
       [event.eventId, event.eventType, event.payload.bookingId, event.correlationId],
     );
     if ((consumed.rowCount ?? 0) === 0) return 'duplicate';
+    await client.query(
+      `UPDATE booking_sagas
+       SET state = CASE
+         WHEN state IN ('AWAITING_PAYMENT', 'RECONCILING') THEN 'PAYMENT_PROCESSING'
+         ELSE state
+       END,
+       last_event_id = $2,
+       payment_id = COALESCE(payment_id, $3),
+       attempt_count = attempt_count + 1,
+       updated_at = NOW()
+       WHERE booking_id = $1`,
+      [event.payload.bookingId, event.eventId, event.payload.paymentId],
+    );
 
     const bookingResult = await client.query<BookingRow>(
       `SELECT id, reservation_id, customer_id, customer_email, showtime_id, branch_id, status,
@@ -59,12 +72,35 @@ export class BookingRepository {
     );
     if ((bookingResult.rowCount ?? 0) === 0) return 'processed';
     const booking = bookingResult.rows[0];
+    if (event.eventType === 'RefundCompleted' || event.eventType === 'RefundFailed') {
+      const succeeded = event.eventType === 'RefundCompleted';
+      await client.query(
+        `UPDATE bookings
+         SET status = CASE WHEN $2 THEN 'REFUNDED' ELSE status END,
+             updated_at = NOW()
+         WHERE id = $1 AND ($2 OR status = 'REFUND_PENDING')`,
+        [booking.id, succeeded],
+      );
+      await client.query(
+        `UPDATE booking_sagas
+         SET state = CASE WHEN $2 THEN 'COMPLETED' ELSE 'RECONCILING' END,
+             last_event_id = $3,
+             last_error = CASE WHEN $2 THEN NULL ELSE 'REFUND_FAILED' END,
+             completed_at = CASE WHEN $2 THEN NOW() ELSE completed_at END,
+             next_action_at = CASE WHEN $2 THEN next_action_at ELSE NOW() + INTERVAL '60 seconds' END,
+             updated_at = NOW()
+         WHERE booking_id = $1`,
+        [booking.id, succeeded, event.eventId],
+      );
+      return 'processed';
+    }
     if (event.eventType === 'PaymentSucceeded') {
       if (
         booking.status !== 'PENDING_PAYMENT' ||
         event.payload.amountVnd !== booking.total_vnd
       ) {
         await this.insertRefundRequested(client, booking, event);
+        await this.markSaga(client, booking.id, 'COMPENSATING', event.eventId);
         return 'processed';
       }
       if (!booking.branch_id) throw new Error('BOOKING_BRANCH_UNAVAILABLE');
@@ -74,6 +110,7 @@ export class BookingRepository {
       );
       if ((reservationResult.rowCount ?? 0) === 0 || reservationResult.rows[0].status !== 'PAYMENT_PENDING') {
         await this.insertRefundRequested(client, booking, event);
+        await this.markSaga(client, booking.id, 'COMPENSATING', event.eventId);
         return 'processed';
       }
       const seats = await client.query<{ seat_id: string; status: string; booking_id: string | null }>(
@@ -93,6 +130,7 @@ export class BookingRepository {
         seats.rows.some((seat) => seat.status !== 'HELD' || !seatIds.has(seat.seat_id))
       ) {
         await this.insertRefundRequested(client, booking, event);
+        await this.markSaga(client, booking.id, 'COMPENSATING', event.eventId);
         return 'processed';
       }
       await client.query(
@@ -109,6 +147,7 @@ export class BookingRepository {
         `UPDATE bookings SET status = 'CONFIRMED', updated_at = NOW() WHERE id = $1`,
         [booking.id],
       );
+      await this.markSaga(client, booking.id, 'CONFIRMED', event.eventId);
       if (!booking.customer_email) throw new Error('BOOKING_CUSTOMER_EMAIL_UNAVAILABLE');
       const showtime = await client.query<{ start_at: Date | string | null }>(
         `SELECT start_at
@@ -166,8 +205,27 @@ export class BookingRepository {
          WHERE reservation_id = $1 AND status = 'HELD'`,
         [booking.reservation_id],
       );
+      await this.markSaga(client, booking.id, 'COMPLETED', event.eventId, true);
     }
     return 'processed';
+  }
+
+  private async markSaga(
+    client: PoolClient,
+    bookingId: string,
+    state: 'CONFIRMED' | 'COMPENSATING' | 'COMPLETED',
+    eventId: string,
+    terminal = false,
+  ): Promise<void> {
+    await client.query(
+      `UPDATE booking_sagas
+       SET state = $2,
+           last_event_id = $3,
+           completed_at = CASE WHEN $4 THEN NOW() ELSE completed_at END,
+           updated_at = NOW()
+       WHERE booking_id = $1`,
+      [bookingId, state, eventId, terminal],
+    );
   }
 
   private async insertRefundRequested(
@@ -176,9 +234,15 @@ export class BookingRepository {
     event: PaymentEvent,
   ): Promise<void> {
     await client.query(
+      `UPDATE bookings SET status = 'REFUND_PENDING', updated_at = NOW()
+       WHERE id = $1 AND status IN ('PENDING_PAYMENT', 'CANCELLED')`,
+      [booking.id],
+    );
+    await client.query(
       `INSERT INTO booking_outbox_events
          (event_type, schema_version, aggregate_id, correlation_id, payload)
-       VALUES ('RefundRequested', 1, $1, $2, $3::jsonb)`,
+       VALUES ('RefundRequested', 1, $1, $2, $3::jsonb)
+       ON CONFLICT (aggregate_id, event_type) WHERE event_type = 'RefundRequested' DO NOTHING`,
       [
         booking.id,
         event.correlationId,
@@ -222,6 +286,21 @@ export class BookingRepository {
       totalVnd: booking.total_vnd,
       paymentDeadlineAt: new Date(booking.payment_deadline_at).toISOString(),
     };
+  }
+
+  async markPaymentInitiated(
+    client: PoolClient,
+    bookingId: string,
+    paymentId: string,
+  ): Promise<void> {
+    await client.query(
+      `UPDATE booking_sagas
+       SET payment_id = COALESCE(payment_id, $2),
+           state = CASE WHEN state = 'AWAITING_PAYMENT' THEN 'PAYMENT_PROCESSING' ELSE state END,
+           updated_at = NOW()
+       WHERE booking_id = $1`,
+      [bookingId, paymentId],
+    );
   }
 
   async listByCustomer(
@@ -369,6 +448,12 @@ export class BookingRepository {
       );
     }
     await client.query(
+      `INSERT INTO booking_sagas (booking_id, state, next_action_at)
+       VALUES ($1, 'AWAITING_PAYMENT', NOW())
+       ON CONFLICT (booking_id) DO NOTHING`,
+      [input.bookingId],
+    );
+    await client.query(
       `UPDATE reservations
        SET status = 'PAYMENT_PENDING', updated_at = NOW()
        WHERE id = $1 AND status = 'ACTIVE'`,
@@ -423,6 +508,73 @@ export class BookingRepository {
       );
     }
     return reservations.rows.length;
+  }
+
+  async recoverCompensatingSagas(client: PoolClient, limit: number): Promise<number> {
+    const result = await client.query<{
+      booking_id: string;
+      payment_id: string | null;
+      total_vnd: number;
+      last_event_id: string | null;
+    }>(
+      `SELECT saga.booking_id, saga.payment_id, booking.total_vnd, saga.last_event_id
+       FROM booking_sagas AS saga
+       JOIN bookings AS booking ON booking.id = saga.booking_id
+       WHERE saga.state IN ('COMPENSATING', 'RECONCILING')
+         AND saga.next_action_at <= NOW()
+       ORDER BY saga.updated_at, saga.booking_id
+       LIMIT $1
+       FOR UPDATE OF saga SKIP LOCKED`,
+      [limit],
+    );
+    for (const saga of result.rows) {
+      if (!saga.payment_id) {
+        await client.query(
+          `UPDATE booking_sagas
+           SET state = 'FAILED', last_error = 'COMPENSATION_PAYMENT_ID_UNAVAILABLE',
+               completed_at = NOW(), updated_at = NOW()
+           WHERE booking_id = $1`,
+          [saga.booking_id],
+        );
+        continue;
+      }
+      const eventId = `${saga.booking_id}:RefundRequested`;
+      await client.query(
+        `INSERT INTO booking_outbox_events
+           (event_type, schema_version, aggregate_id, correlation_id, payload)
+         VALUES ('RefundRequested', 1, $1, $2, $3::jsonb)
+         ON CONFLICT (aggregate_id, event_type) WHERE event_type = 'RefundRequested' DO NOTHING`,
+        [
+          saga.booking_id,
+          `saga-recovery:${saga.booking_id}`,
+          JSON.stringify({
+            eventId,
+            eventType: 'RefundRequested',
+            schemaVersion: 1,
+            aggregateType: 'Booking',
+            aggregateId: saga.booking_id,
+            occurredAt: new Date().toISOString(),
+            correlationId: `saga-recovery:${saga.booking_id}`,
+            payload: {
+              bookingId: saga.booking_id,
+              paymentId: saga.payment_id,
+              amountVnd: saga.total_vnd,
+              reasonCode: 'SAGA_COMPENSATION_RECOVERY',
+            },
+          }),
+        ],
+      );
+      await client.query(
+        `UPDATE booking_sagas
+         SET state = 'RECONCILING',
+             attempt_count = attempt_count + 1,
+             next_action_at = NOW() + INTERVAL '60 seconds',
+             updated_at = NOW()
+         WHERE booking_id = $1`,
+        [saga.booking_id],
+      );
+    }
+    return result.rows.length;
   }
 
   private async expireReservation(client: PoolClient, reservationId: string): Promise<void> {

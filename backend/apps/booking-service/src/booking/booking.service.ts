@@ -12,6 +12,7 @@ import { TransactionRunner } from '../transaction.runner';
 import { BookingRepository } from './booking.repository';
 import { BookingResponse } from './booking.types';
 import { PaymentContext } from './booking.repository';
+import { BookingPaymentClient } from './payment-client';
 
 @Injectable()
 export class BookingService {
@@ -19,6 +20,7 @@ export class BookingService {
     private readonly transactions: TransactionRunner,
     private readonly repository: BookingRepository,
     @Inject(BOOKING_CONFIG) private readonly config: BookingConfig,
+    private readonly paymentClient: BookingPaymentClient,
   ) {}
 
   async paymentContext(
@@ -89,6 +91,27 @@ export class BookingService {
     return this.transactions.run((client) =>
       this.repository.listByCustomer(client, principal.userId),
     );
+  }
+
+  async initiatePayment(
+    principal: BookingPrincipal,
+    bookingId: string,
+    idempotencyKey: string,
+    correlationId: string | undefined,
+    clientIp: string,
+  ): Promise<unknown> {
+    const context = await this.paymentContext(principal, bookingId);
+    const payment = await this.paymentClient.createPayment({
+      bookingId: context.bookingId,
+      customerId: principal.userId,
+      idempotencyKey,
+      correlationId,
+      clientIp,
+    });
+    await this.transactions.run((client) =>
+      this.repository.markPaymentInitiated(client, bookingId, payment.paymentId),
+    );
+    return payment;
   }
 
   async findOne(

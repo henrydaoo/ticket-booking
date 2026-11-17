@@ -4,6 +4,7 @@ import { PAYMENT_CONFIG, PaymentConfig } from './config';
 import { PaymentProviderPort } from './provider/payment-provider.port';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { PaymentRepository } from './payment.repository';
+import { RefundRepository } from './refund.repository';
 
 @Injectable()
 export class ReconciliationWorker implements OnModuleInit, OnModuleDestroy {
@@ -15,6 +16,7 @@ export class ReconciliationWorker implements OnModuleInit, OnModuleDestroy {
     private readonly pool: Pool,
     private readonly reconciliation: ReconciliationRepository,
     private readonly payments: PaymentRepository,
+    private readonly refunds: RefundRepository,
     @Inject('PAYMENT_PROVIDER') private readonly provider: PaymentProviderPort,
     @Inject(PAYMENT_CONFIG) private readonly config: PaymentConfig,
   ) {}
@@ -102,6 +104,60 @@ export class ReconciliationWorker implements OnModuleInit, OnModuleDestroy {
           );
         }
       }
+    } finally {
+      client.release();
+    }
+    await this.reconcileRefunds();
+  }
+
+  private async reconcileRefunds(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const refunds = await this.refunds.findDueForReconciliation(client, 50);
+      await client.query('COMMIT');
+      for (const refund of refunds) {
+        try {
+          const result = await this.provider.createRefund({
+            paymentId: refund.paymentId,
+            providerReference: refund.providerReference,
+            amountVnd: refund.amountVnd,
+            idempotencyKey: `refund-reconciliation:${refund.id}`,
+            orderInfo: `Refund reconciliation ${refund.id}`,
+            transactionDate: new Date(),
+            clientIp: '127.0.0.1',
+          });
+          const updateClient = await this.pool.connect();
+          try {
+            await updateClient.query('BEGIN');
+            await this.refunds.updateResult(
+              updateClient,
+              refund.id,
+              result.status === 'SUCCEEDED' ? 'SUCCEEDED' : result.status === 'PENDING' ? 'PROCESSING' : 'FAILED',
+              result.providerReference,
+            );
+            await this.refunds.updatePaymentState(
+              updateClient,
+              refund.paymentId,
+              result.status === 'SUCCEEDED' ? 'REFUNDED' : 'REFUND_PENDING',
+            );
+            await updateClient.query('COMMIT');
+          } catch (error) {
+            await updateClient.query('ROLLBACK');
+            throw error;
+          } finally {
+            updateClient.release();
+          }
+        } catch (error) {
+          this.logger.error(
+            `Refund reconciliation failed for ${refund.id}`,
+            error instanceof Error ? error.stack : String(error),
+          );
+        }
+      }
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
     } finally {
       client.release();
     }

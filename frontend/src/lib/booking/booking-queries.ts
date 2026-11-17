@@ -8,10 +8,11 @@ import {
   getSeatMap,
   listBookings,
 } from './booking-client';
+import { readSession } from '@/lib/auth/auth-boundary';
 
 export const bookingQueryKeys = {
   seatMap: (showtimeId: string) => ['booking', 'seat-map', showtimeId] as const,
-  bookings: ['booking', 'bookings'] as const,
+  bookings: (customerId: string | undefined) => ['booking', 'bookings', customerId] as const,
   payment: (paymentId: string) => ['payment', paymentId] as const,
 };
 
@@ -44,7 +45,9 @@ export function useBookingMutation() {
   return useMutation({
     mutationFn: createBooking,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: bookingQueryKeys.bookings });
+      void queryClient.invalidateQueries({
+        queryKey: bookingQueryKeys.bookings(readSession()?.user.id),
+      });
     },
   });
 }
@@ -54,9 +57,11 @@ export function usePaymentMutation() {
 }
 
 export function useBookingsQuery() {
+  const customerId = readSession()?.user.id;
   return useQuery({
-    queryKey: bookingQueryKeys.bookings,
+    queryKey: bookingQueryKeys.bookings(customerId),
     queryFn: listBookings,
+    enabled: Boolean(customerId),
   });
 }
 

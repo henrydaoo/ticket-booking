@@ -24,5 +24,12 @@ test('R2.7 uses backend expiry and safe conflict handling', () => {
 
 test('R2.7 gives booking history its own protected customer page', () => {
   assert.match(read('src/app/(customer)/account/bookings/page.tsx'), /ProtectedRoute/);
-  assert.match(read('src/features/booking/my-tickets-page.tsx'), /useBookingsQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /useBookingsQuery/);
+});
+
+test('R3.1 displays issued customer tickets and QR codes from the Ticket API', () => {
+  assert.match(read('src/lib/tickets/ticket-client.ts'), /\/ticket\/tickets/);
+  assert.match(read('src/lib/tickets/ticket-queries.ts'), /useQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /useTicketsQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /QRCodeSVG/);
 });

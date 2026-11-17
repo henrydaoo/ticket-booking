@@ -1,6 +1,12 @@
-# Ticket Service foundation
+# Ticket Service
 
-Ticket Service owns the future ticket, QR, and check-in workflows. Foundation provides isolated `ticket_db` configuration, Kafka consumer lifecycle, health/readiness, and the future `BookingConfirmed` consumer boundary.
+Ticket Service owns issued tickets, QR credentials, ticket status, and check-in
+records. The current R3.1 flow consumes `BookingConfirmed` and issues one
+ticket per booked seat idempotently. Customer ticket reads are scoped to the
+authenticated principal forwarded by the API Gateway.
 
-No ticket or check-in business behavior is implemented. Copy `.env.example` to `.env` before starting.
+QR tokens are encrypted at rest and are never published in Kafka events or
+application logs. Configure `TICKET_QR_TOKEN_ENCRYPTION_KEY` as a base64-encoded
+32-byte key. Copy `.env.example` to `.env` and set the service-owned
+`ticket_db` `DATABASE_URL` before running migrations.
 

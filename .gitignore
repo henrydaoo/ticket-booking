@@ -22,14 +22,8 @@ coverage/
 *.log
 logs/
 
-# Local-only documentation, except approved release artifacts
+# Local-only documentation
 docs/*
-!docs/releases/
-docs/releases/*
-!docs/releases/r2/
-docs/releases/r2/*
-!docs/releases/r2/r2-contracts.md
-!docs/releases/r2/project-r2-plan.md
 
 # Local tooling
 .cache/

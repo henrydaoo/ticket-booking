@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { config as loadDotenv } from 'dotenv';
 import { Kafka } from 'kafkajs';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 import { Pool } from 'pg';
 import { PAYMENT_CONFIG, loadPaymentConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
@@ -51,6 +52,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
           ...config.kafkaSecurity,
         }),
       inject: [PAYMENT_CONFIG],
+    },
+    {
+      provide: KafkaDeadLetterPublisher,
+      useFactory: (kafka: Kafka) => new KafkaDeadLetterPublisher(kafka, 'payment-service'),
+      inject: [Kafka],
     },
     PaymentConsumerLifecycle,
     TransactionRunner,

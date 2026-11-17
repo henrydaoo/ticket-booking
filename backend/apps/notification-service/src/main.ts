@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { config as loadDotenv } from 'dotenv';
 import { Kafka } from 'kafkajs';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 import { Pool } from 'pg';
 import { correlationIdMiddleware } from './correlation-id.middleware';
 import { NotificationConsumerLifecycle } from './consumer.lifecycle';
@@ -43,6 +44,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
           ...config.kafkaSecurity,
         }),
       inject: [NOTIFICATION_CONFIG],
+    },
+    {
+      provide: KafkaDeadLetterPublisher,
+      useFactory: (kafka: Kafka) => new KafkaDeadLetterPublisher(kafka, 'notification-service'),
+      inject: [Kafka],
     },
     { provide: 'EMAIL_DELIVERY', useClass: HttpEmailDeliveryAdapter },
     NotificationRepository,

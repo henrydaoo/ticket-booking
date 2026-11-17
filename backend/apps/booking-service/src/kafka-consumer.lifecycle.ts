@@ -3,7 +3,9 @@ import { Consumer, Kafka } from 'kafkajs';
 import { BOOKING_CONFIG, BookingConfig } from './config';
 import { Inject } from '@nestjs/common';
 import { InventoryInitializer } from './inventory/inventory-initializer';
+import { PaymentEvent } from './booking/booking.repository';
 import { PaymentOrchestrator } from './booking/payment-orchestrator';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 
 export const SHOWTIME_PUBLISHED_TOPIC = 'catalog.showtime-published.v1';
 export const PAYMENT_SUCCEEDED_TOPIC = 'payment.payment-succeeded.v1';
@@ -22,6 +24,7 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
     @Inject(BOOKING_CONFIG) private readonly config: BookingConfig,
     private readonly inventoryInitializer: InventoryInitializer,
     private readonly paymentOrchestrator: PaymentOrchestrator,
+    private readonly deadLetter: KafkaDeadLetterPublisher,
   ) {
     this.consumer = kafka.consumer({ groupId: config.kafkaGroupId });
   }
@@ -38,15 +41,30 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
       await this.consumer.subscribe({ topic: REFUND_COMPLETED_TOPIC, fromBeginning: true });
       await this.consumer.subscribe({ topic: REFUND_FAILED_TOPIC, fromBeginning: true });
       void this.consumer.run({
-        eachMessage: async ({ topic, message }) => {
-          if (!message.value) {
-            throw new Error(`Received empty Kafka message from ${topic}`);
-          }
-          const event = JSON.parse(message.value.toString('utf8'));
-          if (topic === SHOWTIME_PUBLISHED_TOPIC) {
-            await this.inventoryInitializer.initialize(event);
-          } else {
-            await this.paymentOrchestrator.process(event);
+        eachMessage: async ({ topic, partition, message }) => {
+          const raw = message.value?.toString('utf8');
+          let payload: unknown = null;
+          try {
+            if (!raw) throw new Error(`Received empty Kafka message from ${topic}`);
+            payload = JSON.parse(raw) as unknown;
+            const event = payload;
+            if (topic === SHOWTIME_PUBLISHED_TOPIC) {
+              await this.inventoryInitializer.initialize(event);
+            } else {
+              await this.paymentOrchestrator.process(event as PaymentEvent);
+            }
+          } catch (error) {
+            await this.deadLetter.publish({
+              sourceTopic: topic,
+              sourcePartition: partition,
+              sourceOffset: message.offset,
+              error,
+              payload,
+            });
+            this.logger.error(
+              `Kafka event moved to ${topic}.dlq.v1`,
+              error instanceof Error ? error.stack : String(error),
+            );
           }
         },
       }).catch((error: unknown) => {
@@ -67,12 +85,11 @@ export class KafkaConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (!this.connected) {
-      return;
+    if (this.connected) {
+      await this.consumer.disconnect();
     }
-
-    await this.consumer.disconnect();
     this.connected = false;
+    await this.deadLetter.disconnect();
     this.logger.log(`Kafka consumer disconnected for ${this.config.serviceName}`);
   }
 

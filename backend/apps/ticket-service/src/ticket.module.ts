@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 import { Pool } from 'pg';
 import { TICKET_CONFIG, loadTicketConfig } from './config';
 import { TicketConsumerLifecycle } from './consumer.lifecycle';
@@ -35,6 +36,11 @@ import {
           ...config.kafkaSecurity,
         }),
       inject: [TICKET_CONFIG],
+    },
+    {
+      provide: KafkaDeadLetterPublisher,
+      useFactory: (kafka: Kafka) => new KafkaDeadLetterPublisher(kafka, 'ticket-service'),
+      inject: [Kafka],
     },
     TicketTransactionRunner,
     TicketRepository,

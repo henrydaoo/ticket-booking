@@ -55,3 +55,60 @@ test('ticket list forwards the authenticated principal and correlation ID', asyn
 
   assert.deepEqual(calls, [['correlation-001', principal]]);
 });
+
+test('check-in and reversal routes forward the authenticated principal', async () => {
+  const calls = [];
+  const controller = new TicketController({
+    checkIn: async (...args) => {
+      calls.push(['checkIn', ...args]);
+      return { status: 'USED' };
+    },
+    reverse: async (...args) => {
+      calls.push(['reverse', ...args]);
+      return { status: 'VALID' };
+    },
+  });
+  const request = { header: () => 'Bearer test-token' };
+  const principal = {
+    sub: 'staff-001',
+    roles: ['CINEMA_STAFF'],
+    branchIds: ['branch-001'],
+    mfaCompleted: false,
+    issuer: 'issuer',
+    audience: 'audience',
+    issuedAt: 1,
+    expiresAt: 2,
+    tokenId: 'token-001',
+  };
+
+  await new AuthGuard({
+    verify: async () => ({ principal }),
+  }).canActivate(authContext(request));
+  await controller.checkIn(
+    { qrToken: 'opaque', showtimeId: 'showtime-001', branchId: 'branch-001' },
+    request,
+    'correlation-001',
+  );
+  await controller.reverse(
+    'checkin-001',
+    { reason: 'operator correction', branchId: 'branch-001' },
+    request,
+    'correlation-002',
+  );
+
+  assert.deepEqual(calls, [
+    [
+      'checkIn',
+      'correlation-001',
+      { qrToken: 'opaque', showtimeId: 'showtime-001', branchId: 'branch-001' },
+      principal,
+    ],
+    [
+      'reverse',
+      'checkin-001',
+      'correlation-002',
+      { reason: 'operator correction', branchId: 'branch-001' },
+      principal,
+    ],
+  ]);
+});

@@ -8,6 +8,7 @@ import { TicketOutboxLifecycle } from './tickets/ticket-outbox.lifecycle';
 import { TicketController } from './tickets/ticket.controller';
 import { TicketRepository } from './tickets/ticket.repository';
 import { TicketService } from './tickets/ticket.service';
+import { CheckInRepository } from './tickets/check-in.repository';
 import { TicketTransactionRunner } from './transaction.runner';
 
 @Module({
@@ -32,6 +33,7 @@ import { TicketTransactionRunner } from './transaction.runner';
     },
     TicketTransactionRunner,
     TicketRepository,
+    CheckInRepository,
     TicketService,
     TicketConsumerLifecycle,
     TicketOutboxLifecycle,

@@ -30,9 +30,9 @@ export class TicketRepository {
         Pick<TicketRow, 'ticket_id' | 'booking_id' | 'customer_id' | 'showtime_id' | 'seat_id' | 'ticket_code'>
       >(
         `INSERT INTO tickets
-           (id, booking_id, customer_id, showtime_id, seat_id, ticket_code,
-            qr_token_ciphertext, qr_token_nonce, qr_token_auth_tag)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           (id, booking_id, customer_id, showtime_id, branch_id, seat_id, ticket_code,
+            qr_token_ciphertext, qr_token_nonce, qr_token_auth_tag, qr_token_digest)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (booking_id, seat_id) DO NOTHING
          RETURNING id AS ticket_id, booking_id, customer_id, showtime_id, seat_id, ticket_code`,
         [
@@ -40,11 +40,13 @@ export class TicketRepository {
           ticket.bookingId,
           ticket.customerId,
           ticket.showtimeId,
+          ticket.branchId,
           ticket.seatId,
           ticket.ticketCode,
           ticket.qrTokenCiphertext,
           ticket.qrTokenNonce,
           ticket.qrTokenAuthTag,
+          ticket.qrTokenDigest,
         ],
       );
       if (inserted.rowCount) insertedTickets.push(inserted.rows[0]);
@@ -89,7 +91,7 @@ export class TicketRepository {
 
   async listByCustomer(client: PoolClient, customerId: string): Promise<TicketRow[]> {
     const result = await client.query<TicketRow>(
-      `SELECT id AS ticket_id, booking_id, customer_id, showtime_id, seat_id,
+      `SELECT id AS ticket_id, booking_id, customer_id, showtime_id, branch_id, seat_id,
               ticket_code, qr_token_ciphertext, qr_token_nonce, qr_token_auth_tag,
               status, issued_at
        FROM tickets

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 export type EncryptedQrToken = {
   ciphertext: string;
@@ -28,4 +28,8 @@ export function decryptQrToken(encrypted: EncryptedQrToken, key: Buffer): string
     decipher.update(Buffer.from(encrypted.ciphertext, 'base64')),
     decipher.final(),
   ]).toString('utf8');
+}
+
+export function digestQrToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('base64url');
 }

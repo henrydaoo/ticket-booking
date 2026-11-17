@@ -11,6 +11,8 @@ type TicketOutboxRow = {
 
 const TOPICS: Record<string, string> = {
   TicketIssued: 'ticket.ticket-issued.v1',
+  TicketCheckedIn: 'ticket.ticket-checked-in.v1',
+  TicketCheckInReversed: 'ticket.ticket-check-in-reversed.v1',
 };
 
 @Injectable()

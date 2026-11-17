@@ -5,6 +5,7 @@ export type TicketPrincipal = {
   userId: string;
   roles: string[];
   branchIds: string[];
+  mfaCompleted: boolean;
 };
 
 function headerValue(value: string | string[] | undefined): string | undefined {
@@ -34,5 +35,6 @@ export function principalFromHeaders(headers: IncomingHttpHeaders): TicketPrinci
       headerValue(headers['x-authenticated-branch-ids']),
       'branchIds',
     ),
+    mfaCompleted: headerValue(headers['x-authenticated-mfa-completed']) === 'true',
   };
 }

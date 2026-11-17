@@ -7,6 +7,7 @@ type BookingRow = {
   reservation_id: string;
   customer_id: string;
   showtime_id: string;
+  branch_id: string | null;
   status: BookingResponse['status'];
   total_vnd: number;
   payment_deadline_at: Date;
@@ -48,7 +49,7 @@ export class BookingRepository {
     if ((consumed.rowCount ?? 0) === 0) return 'duplicate';
 
     const bookingResult = await client.query<BookingRow>(
-      `SELECT id, reservation_id, customer_id, showtime_id, status,
+      `SELECT id, reservation_id, customer_id, showtime_id, branch_id, status,
               total_vnd, payment_deadline_at
        FROM bookings
        WHERE id = $1
@@ -65,6 +66,7 @@ export class BookingRepository {
         await this.insertRefundRequested(client, booking, event);
         return 'processed';
       }
+      if (!booking.branch_id) throw new Error('BOOKING_BRANCH_UNAVAILABLE');
       const reservationResult = await client.query<{ status: string }>(
         `SELECT status FROM reservations WHERE id = $1 FOR UPDATE`,
         [booking.reservation_id],
@@ -125,6 +127,7 @@ export class BookingRepository {
               bookingId: booking.id,
               customerId: booking.customer_id,
               showtimeId: booking.showtime_id,
+              branchId: booking.branch_id,
               totalVnd: booking.total_vnd,
               seats: bookingSeats.rows,
             },
@@ -191,7 +194,7 @@ export class BookingRepository {
     customerId: string,
   ): Promise<PaymentContext | null> {
     const result = await client.query<BookingRow>(
-      `SELECT id, reservation_id, customer_id, showtime_id, status,
+      `SELECT id, reservation_id, customer_id, showtime_id, branch_id, status,
               total_vnd, payment_deadline_at
        FROM bookings
        WHERE id = $1 AND customer_id = $2
@@ -214,7 +217,7 @@ export class BookingRepository {
     customerId: string,
   ): Promise<BookingResponse[]> {
     const result = await client.query<BookingRow>(
-      `SELECT id, reservation_id, customer_id, showtime_id, status,
+      `SELECT id, reservation_id, customer_id, showtime_id, branch_id, status,
               total_vnd, payment_deadline_at
        FROM bookings
        WHERE customer_id = $1
@@ -230,7 +233,7 @@ export class BookingRepository {
     customerId: string,
   ): Promise<BookingResponse | null> {
     const result = await client.query<BookingRow>(
-      `SELECT id, reservation_id, customer_id, showtime_id, status,
+      `SELECT id, reservation_id, customer_id, showtime_id, branch_id, status,
               total_vnd, payment_deadline_at
        FROM bookings
        WHERE id = $1 AND customer_id = $2`,
@@ -314,22 +317,31 @@ export class BookingRepository {
     if (reservationSeats.rows.length !== seats.rows.length) {
       throw new Error('RESERVATION_NOT_ACTIVE');
     }
+    const inventory = await client.query<{ branch_id: string | null }>(
+      `SELECT branch_id
+       FROM showtime_inventory
+       WHERE showtime_id = $1
+       FOR SHARE`,
+      [reservation.showtime_id],
+    );
+    if (!inventory.rows[0]?.branch_id) throw new Error('SHOWTIME_BRANCH_UNAVAILABLE');
     const totalVnd = reservationSeats.rows.reduce(
       (total, seat) => total + seat.price_vnd,
       0,
     );
     const booking = await client.query<BookingRow>(
       `INSERT INTO bookings
-         (id, customer_id, reservation_id, showtime_id, idempotency_key,
+         (id, customer_id, reservation_id, showtime_id, branch_id, idempotency_key,
           status, total_vnd, payment_deadline_at)
-       VALUES ($1, $2, $3, $4, $5, 'PENDING_PAYMENT', $6, $7)
-       RETURNING id, reservation_id, customer_id, showtime_id, status,
+       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING_PAYMENT', $7, $8)
+       RETURNING id, reservation_id, customer_id, showtime_id, branch_id, status,
                  total_vnd, payment_deadline_at`,
       [
         input.bookingId,
         input.customerId,
         reservation.id,
         reservation.showtime_id,
+        inventory.rows[0].branch_id,
         input.idempotencyKey,
         totalVnd,
         input.paymentDeadlineAt,

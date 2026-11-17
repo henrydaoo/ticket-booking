@@ -14,16 +14,18 @@ const event = {
     bookingId: 'booking-001',
     customerId: 'customer-001',
     showtimeId: 'showtime-001',
+    branchId: 'branch-001',
     seats: [{ seat_id: 'seat-001' }, { seat_id: 'seat-002' }],
   },
 };
 
-function serviceWith(repository) {
+function serviceWith(repository, checkIns) {
   const config = { qrTokenEncryptionKey: encryptionKey };
   return new (require('../dist/tickets/ticket.service.js').TicketService)(
     { async run(work) { return work({}); } },
     repository,
     config,
+    checkIns,
   );
 }
 
@@ -222,4 +224,165 @@ test('non-customers cannot retrieve the customer ticket list', async () => {
     service.listForCustomer({ userId: 'staff-001', roles: ['CINEMA_STAFF'], branchIds: [] }),
     /CUSTOMER_ROLE_REQUIRED/,
   );
+});
+
+test('authorized staff check-in transitions a valid ticket and preserves branch context', async () => {
+  const calls = [];
+  const service = serviceWith(
+    {},
+    {
+      async findTicketForUpdate(_client, digest) {
+        calls.push(['find', digest]);
+        return {
+          ticket_id: 'ticket-001',
+          booking_id: 'booking-001',
+          showtime_id: 'showtime-001',
+          branch_id: 'branch-001',
+          status: 'VALID',
+        };
+      },
+      async createCheckIn(_client, ticket, input) {
+        calls.push(['create', ticket.ticket_id, input]);
+        return {
+          checkInId: 'checkin-001',
+          ticketId: ticket.ticket_id,
+          bookingId: ticket.booking_id,
+          showtimeId: input.showtimeId,
+          branchId: input.branchId,
+          status: 'USED',
+          checkedInAt: '2026-11-17T00:00:00.000Z',
+        };
+      },
+    },
+  );
+
+  const result = await service.checkIn(
+    {
+      qrToken: 'opaque-qr-token',
+      showtimeId: 'showtime-001',
+      branchId: 'branch-001',
+      correlationId: 'correlation-001',
+    },
+    {
+      userId: 'staff-001',
+      roles: ['CINEMA_STAFF'],
+      branchIds: ['branch-001'],
+      mfaCompleted: false,
+    },
+  );
+
+  assert.equal(result.status, 'USED');
+  assert.equal(calls[1][2].actorId, 'staff-001');
+  assert.equal(calls[1][2].branchId, 'branch-001');
+});
+
+test('check-in rejects a ticket from another branch', async () => {
+  const service = serviceWith(
+    {},
+    {
+      async findTicketForUpdate() {
+        return {
+          ticket_id: 'ticket-001',
+          booking_id: 'booking-001',
+          showtime_id: 'showtime-001',
+          branch_id: 'branch-002',
+          status: 'VALID',
+        };
+      },
+    },
+  );
+
+  await assert.rejects(
+    service.checkIn(
+      {
+        qrToken: 'opaque-qr-token',
+        showtimeId: 'showtime-001',
+        branchId: 'branch-001',
+        correlationId: 'correlation-001',
+      },
+      {
+        userId: 'staff-001',
+        roles: ['CINEMA_STAFF'],
+        branchIds: ['branch-001'],
+        mfaCompleted: false,
+      },
+    ),
+    /TICKET_BRANCH_FORBIDDEN/,
+  );
+});
+
+test('only managers and MFA-complete platform admins can reverse a check-in', async () => {
+  let reversed = false;
+  const service = serviceWith(
+    {},
+    {
+      async findCheckInForUpdate() {
+        return {
+          checkInId: 'checkin-001',
+          ticketId: 'ticket-001',
+          bookingId: 'booking-001',
+          branchId: 'branch-001',
+          status: 'USED',
+        };
+      },
+      async reverseCheckIn(_client, checkIn, actorId, reason) {
+        reversed = true;
+        return {
+          checkInId: checkIn.checkInId,
+          ticketId: checkIn.ticketId,
+          status: 'VALID',
+          reversedAt: '2026-11-17T00:00:00.000Z',
+          actorId,
+          reason,
+        };
+      },
+    },
+  );
+
+  await assert.rejects(
+    service.reverseCheckIn(
+      'checkin-001',
+      'operator correction',
+      'branch-001',
+      'correlation-001',
+      {
+        userId: 'staff-001',
+        roles: ['CINEMA_STAFF'],
+        branchIds: ['branch-001'],
+        mfaCompleted: false,
+      },
+    ),
+    /CHECK_IN_REVERSAL_ROLE_REQUIRED/,
+  );
+
+  await assert.rejects(
+    service.reverseCheckIn(
+      'checkin-001',
+      'operator correction',
+      'branch-001',
+      'correlation-001',
+      {
+        userId: 'admin-001',
+        roles: ['PLATFORM_ADMIN'],
+        branchIds: ['branch-001'],
+        mfaCompleted: false,
+      },
+    ),
+    /PLATFORM_ADMIN_MFA_REQUIRED/,
+  );
+
+  const result = await service.reverseCheckIn(
+    'checkin-001',
+    'operator correction',
+    'branch-001',
+    'correlation-001',
+    {
+      userId: 'manager-001',
+      roles: ['CINEMA_MANAGER'],
+      branchIds: ['branch-001'],
+      mfaCompleted: false,
+    },
+  );
+  assert.equal(result.status, 'VALID');
+  assert.equal(reversed, true);
 });

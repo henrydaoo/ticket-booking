@@ -112,6 +112,7 @@ export class AuthService {
     const branchIds = await this.repository.branchIdsForUser(user.id);
     const accessToken = this.jwtTokens.issueAccessToken({
       userId: user.id,
+      email: user.email,
       roles,
       branchIds,
       mfaCompleted: user.mfa_completed,
@@ -279,6 +280,7 @@ export class AuthService {
     const branchIds = await this.repository.branchIdsForUser(user.id);
     const accessToken = this.jwtTokens.issueAccessToken({
       userId: user.id,
+      email: user.email,
       roles,
       branchIds,
       mfaCompleted,

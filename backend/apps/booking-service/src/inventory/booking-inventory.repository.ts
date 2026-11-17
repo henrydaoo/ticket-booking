@@ -47,11 +47,12 @@ export class BookingInventoryRepository {
 
     await client.query(
       `INSERT INTO showtime_inventory
-        (showtime_id, branch_id, screen_id, status, pricing_version, layout_version, source_event_id)
-       VALUES ($1, $2, $3, 'READY', $4, $5, $6)`,
+        (showtime_id, branch_id, start_at, screen_id, status, pricing_version, layout_version, source_event_id)
+       VALUES ($1, $2, $3, $4, 'READY', $5, $6, $7)`,
       [
         event.payload.showtimeId,
         event.payload.branchId,
+        event.payload.startAt,
         event.payload.screenId,
         event.payload.pricingVersion,
         event.payload.layoutVersion,

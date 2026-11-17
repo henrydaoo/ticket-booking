@@ -3,6 +3,7 @@ import { IncomingHttpHeaders } from 'node:http';
 
 export type BookingPrincipal = {
   userId: string;
+  email: string;
   roles: string[];
   branchIds: string[];
 };
@@ -26,11 +27,13 @@ function jsonArray(value: string | undefined, field: string): string[] {
 
 export function principalFromHeaders(headers: IncomingHttpHeaders): BookingPrincipal {
   const userId = headerValue(headers['x-authenticated-user-id']);
-  if (!userId) {
+  const email = headerValue(headers['x-authenticated-email']);
+  if (!userId || !email) {
     throw new UnauthorizedException('Authenticated principal is missing');
   }
   return {
     userId,
+    email,
     roles: jsonArray(headerValue(headers['x-authenticated-roles']), 'roles'),
     branchIds: jsonArray(headerValue(headers['x-authenticated-branch-ids']), 'branchIds'),
   };

@@ -13,7 +13,9 @@ const event = {
   payload: {
     bookingId: 'booking-001',
     customerId: 'customer-001',
+    recipientEmail: 'customer@example.com',
     showtimeId: 'showtime-001',
+    showtimeStartAt: '2026-11-17T12:00:00.000Z',
     branchId: 'branch-001',
     seats: [{ seat_id: 'seat-001' }, { seat_id: 'seat-002' }],
   },

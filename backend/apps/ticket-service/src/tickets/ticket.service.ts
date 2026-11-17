@@ -53,6 +53,11 @@ export function parseBookingConfirmedEvent(value: unknown): BookingConfirmedEven
     throw new BadRequestException('UNSUPPORTED_BOOKING_CONFIRMED_EVENT');
   }
   const branchId = requiredString(value.payload.branchId, 'payload.branchId');
+  const recipientEmail = requiredString(value.payload.recipientEmail, 'payload.recipientEmail');
+  const showtimeStartAt = requiredString(value.payload.showtimeStartAt, 'payload.showtimeStartAt');
+  if (!Number.isFinite(Date.parse(showtimeStartAt))) {
+    throw new BadRequestException('INVALID_BOOKING_CONFIRMED:showtimeStartAt');
+  }
   const seats = value.payload.seats;
   if (!Array.isArray(seats) || seats.length === 0) {
     throw new BadRequestException('INVALID_BOOKING_CONFIRMED:seats');
@@ -86,7 +91,9 @@ export function parseBookingConfirmedEvent(value: unknown): BookingConfirmedEven
     payload: {
       bookingId,
       customerId: requiredString(value.payload.customerId, 'payload.customerId'),
+      recipientEmail,
       showtimeId: requiredString(value.payload.showtimeId, 'payload.showtimeId'),
+      showtimeStartAt,
       branchId,
       seats: seatIds.map((seat_id) => ({ seat_id })),
     },

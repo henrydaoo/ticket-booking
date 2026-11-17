@@ -5,6 +5,7 @@ import { IDENTITY_CONFIG, IdentityConfig } from '../../config/config';
 
 type JwtPayload = {
   sub: string;
+  email: string;
   roles: string[];
   branch_ids: string[];
   mfa_completed: boolean;
@@ -31,6 +32,7 @@ export class JwtTokenService {
 
   issueAccessToken(input: {
     userId: string;
+    email: string;
     roles: string[];
     branchIds: string[];
     mfaCompleted: boolean;
@@ -38,6 +40,7 @@ export class JwtTokenService {
     const issuedAt = Math.floor(Date.now() / 1000);
     const payload: JwtPayload = {
       sub: input.userId,
+      email: input.email,
       roles: input.roles,
       branch_ids: input.branchIds,
       mfa_completed: input.mfaCompleted,

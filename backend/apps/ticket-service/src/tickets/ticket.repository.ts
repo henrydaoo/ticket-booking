@@ -64,7 +64,9 @@ export class TicketRepository {
         payload: {
           bookingId: event.payload.bookingId,
           customerId: event.payload.customerId,
+          recipientEmail: event.payload.recipientEmail,
           showtimeId: event.payload.showtimeId,
+          showtimeStartAt: event.payload.showtimeStartAt,
           tickets: insertedTickets.map((ticket) => ({
             ticketId: ticket.ticket_id,
             seatId: ticket.seat_id,

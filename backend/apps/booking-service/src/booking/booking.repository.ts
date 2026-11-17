@@ -6,6 +6,7 @@ type BookingRow = {
   id: string;
   reservation_id: string;
   customer_id: string;
+  customer_email: string | null;
   showtime_id: string;
   branch_id: string | null;
   status: BookingResponse['status'];
@@ -49,7 +50,7 @@ export class BookingRepository {
     if ((consumed.rowCount ?? 0) === 0) return 'duplicate';
 
     const bookingResult = await client.query<BookingRow>(
-      `SELECT id, reservation_id, customer_id, showtime_id, branch_id, status,
+      `SELECT id, reservation_id, customer_id, customer_email, showtime_id, branch_id, status,
               total_vnd, payment_deadline_at
        FROM bookings
        WHERE id = $1
@@ -108,6 +109,15 @@ export class BookingRepository {
         `UPDATE bookings SET status = 'CONFIRMED', updated_at = NOW() WHERE id = $1`,
         [booking.id],
       );
+      if (!booking.customer_email) throw new Error('BOOKING_CUSTOMER_EMAIL_UNAVAILABLE');
+      const showtime = await client.query<{ start_at: Date | string | null }>(
+        `SELECT start_at
+         FROM showtime_inventory
+         WHERE showtime_id = $1
+         FOR SHARE`,
+        [booking.showtime_id],
+      );
+      if (!showtime.rows[0]?.start_at) throw new Error('SHOWTIME_START_UNAVAILABLE');
       await client.query(
         `INSERT INTO booking_outbox_events
            (event_type, schema_version, aggregate_id, correlation_id, payload)
@@ -126,7 +136,9 @@ export class BookingRepository {
             payload: {
               bookingId: booking.id,
               customerId: booking.customer_id,
+              recipientEmail: booking.customer_email,
               showtimeId: booking.showtime_id,
+              showtimeStartAt: new Date(showtime.rows[0].start_at).toISOString(),
               branchId: booking.branch_id,
               totalVnd: booking.total_vnd,
               seats: bookingSeats.rows,
@@ -269,6 +281,7 @@ export class BookingRepository {
     input: {
       bookingId: string;
       customerId: string;
+      customerEmail: string;
       reservationId: string;
       idempotencyKey: string;
       paymentDeadlineAt: Date;
@@ -318,7 +331,7 @@ export class BookingRepository {
       throw new Error('RESERVATION_NOT_ACTIVE');
     }
     const inventory = await client.query<{ branch_id: string | null }>(
-      `SELECT branch_id
+      `SELECT branch_id, start_at
        FROM showtime_inventory
        WHERE showtime_id = $1
        FOR SHARE`,
@@ -331,14 +344,15 @@ export class BookingRepository {
     );
     const booking = await client.query<BookingRow>(
       `INSERT INTO bookings
-         (id, customer_id, reservation_id, showtime_id, branch_id, idempotency_key,
+         (id, customer_id, customer_email, reservation_id, showtime_id, branch_id, idempotency_key,
           status, total_vnd, payment_deadline_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING_PAYMENT', $7, $8)
-       RETURNING id, reservation_id, customer_id, showtime_id, branch_id, status,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING_PAYMENT', $8, $9)
+       RETURNING id, reservation_id, customer_id, customer_email, showtime_id, branch_id, status,
                  total_vnd, payment_deadline_at`,
       [
         input.bookingId,
         input.customerId,
+        input.customerEmail,
         reservation.id,
         reservation.showtime_id,
         inventory.rows[0].branch_id,

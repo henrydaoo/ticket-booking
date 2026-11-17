@@ -22,7 +22,9 @@ export type BookingConfirmedEvent = {
   payload: {
     bookingId: string;
     customerId: string;
+    recipientEmail: string;
     showtimeId: string;
+    showtimeStartAt: string;
     branchId: string;
     seats: Array<{ seat_id: string }>;
   };

@@ -1,6 +1,10 @@
-# Notification Service foundation
+# Notification Service
 
-Notification Service owns the future notification delivery and retry workflows. Foundation provides isolated `notification_db` configuration, Kafka consumer lifecycle, email-provider placeholders, health/readiness, and an email provider boundary.
+Notification Service owns notification jobs, delivery attempts, reminder
+scheduling, retries, and dead-letter state in `notification_db`. It consumes
+versioned business events through Kafka and sends email through the configured
+provider boundary.
 
-No notification or email delivery business behavior is implemented. Copy `.env.example` to `.env` before starting.
+Email delivery failure never changes the originating booking, payment, ticket,
+refund, or check-in state. Copy `.env.example` to `.env` before starting.
 

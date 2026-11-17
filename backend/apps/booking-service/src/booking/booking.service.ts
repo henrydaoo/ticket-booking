@@ -59,6 +59,7 @@ export class BookingService {
         return await this.repository.createFromReservation(client, {
           bookingId: randomUUID(),
           customerId: principal.userId,
+          customerEmail: principal.email,
           reservationId: input.reservationId,
           idempotencyKey: input.idempotencyKey,
           paymentDeadlineAt: new Date(

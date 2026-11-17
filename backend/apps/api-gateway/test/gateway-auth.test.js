@@ -24,6 +24,7 @@ function token(overrides = {}, headerOverrides = {}) {
   const header = { alg: 'RS256', typ: 'JWT', kid: 'test-key', ...headerOverrides };
   const payload = {
     sub: 'user-001',
+    email: 'customer@example.com',
     iss: config.jwtIssuer,
     aud: config.jwtAudience,
     iat: now - 1,

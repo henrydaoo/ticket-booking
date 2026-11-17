@@ -101,6 +101,7 @@ export class JwtVerifierService {
       token,
       principal: {
         sub: claimString(payload.sub, 'sub'),
+        email: claimString(payload.email, 'email'),
         roles: claimStringArray(payload.roles, 'roles'),
         branchIds: claimStringArray(payload.branch_ids, 'branch_ids'),
         mfaCompleted,

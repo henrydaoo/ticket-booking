@@ -10,6 +10,9 @@ import { NotificationConsumerLifecycle } from './consumer.lifecycle';
 import { HealthController } from './health.controller';
 import { NOTIFICATION_CONFIG, loadNotificationConfig } from './config';
 import { ProviderController } from './provider.controller';
+import { NotificationRepository } from './notification.repository';
+import { NotificationDeliveryWorker } from './delivery.worker';
+import { HttpEmailDeliveryAdapter } from './email-delivery';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
@@ -33,7 +36,10 @@ loadDotenv({ path: join(__dirname, '../.env') });
         }),
       inject: [NOTIFICATION_CONFIG],
     },
+    { provide: 'EMAIL_DELIVERY', useClass: HttpEmailDeliveryAdapter },
+    NotificationRepository,
     NotificationConsumerLifecycle,
+    NotificationDeliveryWorker,
   ],
 })
 class NotificationModule {}

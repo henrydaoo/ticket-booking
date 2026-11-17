@@ -11,6 +11,7 @@ export type TicketConfig = ServiceConfig & {
   kafkaClientId: string;
   kafkaGroupId: string;
   kafkaSecurity: KafkaSecurityOptions;
+  qrTokenEncryptionKey: Buffer;
 };
 
 export const TICKET_CONFIG = Symbol('TICKET_CONFIG');
@@ -31,6 +32,14 @@ export function loadTicketConfig(environment: NodeJS.ProcessEnv = process.env): 
   if (brokers.length === 0) {
     throw new Error('KAFKA_BROKERS must contain at least one broker');
   }
+  const encodedQrTokenEncryptionKey = required(environment, 'TICKET_QR_TOKEN_ENCRYPTION_KEY');
+  const qrTokenEncryptionKey = Buffer.from(encodedQrTokenEncryptionKey, 'base64');
+  if (
+    qrTokenEncryptionKey.length !== 32 ||
+    qrTokenEncryptionKey.toString('base64') !== encodedQrTokenEncryptionKey
+  ) {
+    throw new Error('TICKET_QR_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key');
+  }
   return {
     ...loadServiceConfig(environment),
     databaseUrl: required(environment, 'DATABASE_URL'),
@@ -38,6 +47,7 @@ export function loadTicketConfig(environment: NodeJS.ProcessEnv = process.env): 
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),
     kafkaSecurity: loadKafkaSecurityOptions(environment),
+    qrTokenEncryptionKey,
   };
 }
 

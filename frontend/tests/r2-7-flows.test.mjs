@@ -24,5 +24,29 @@ test('R2.7 uses backend expiry and safe conflict handling', () => {
 
 test('R2.7 gives booking history its own protected customer page', () => {
   assert.match(read('src/app/(customer)/account/bookings/page.tsx'), /ProtectedRoute/);
-  assert.match(read('src/features/booking/my-tickets-page.tsx'), /useBookingsQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /useBookingsQuery/);
+});
+
+test('R3.1 displays issued customer tickets and QR codes from the Ticket API', () => {
+  assert.match(read('src/lib/tickets/ticket-client.ts'), /\/ticket\/tickets/);
+  assert.match(read('src/lib/tickets/ticket-queries.ts'), /useQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /useTicketsQuery/);
+  assert.match(read('src/features/tickets/my-tickets-page.tsx'), /QRCodeSVG/);
+});
+
+test('R3.5 wires staff check-in and manager reversal to approved Ticket routes', () => {
+  assert.match(read('src/lib/tickets/check-in-client.ts'), /\/ticket\/check-ins/);
+  assert.match(read('src/lib/tickets/check-in-client.ts'), /\/reverse/);
+  assert.match(read('src/lib/tickets/check-in-queries.ts'), /useMutation/);
+  assert.match(read('src/features/check-in/check-in-page.tsx'), /react-hook-form/);
+  assert.match(read('src/features/check-in/check-in-page.tsx'), /TICKET_USED/);
+  assert.match(read('src/features/check-in/check-in-page.tsx'), /CHECK_IN_REVERSAL_ROLE_REQUIRED/);
+  assert.match(read('src/app/(staff)/staff/check-in/page.tsx'), /ManagerPage view="check-in"/);
+});
+
+test('R3.5 presents backend-owned refund statuses without inventing a cancellation action', () => {
+  const tickets = read('src/features/tickets/my-tickets-page.tsx');
+  assert.match(tickets, /REFUND_PENDING/);
+  assert.match(tickets, /REFUNDED/);
+  assert.doesNotMatch(tickets, /cancelBooking|cancel.*booking/i);
 });

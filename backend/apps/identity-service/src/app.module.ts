@@ -15,10 +15,15 @@ import { JwtTokenService } from './modules/auth/jwt-token.service';
 import { PasswordService } from './modules/auth/password.service';
 import { TotpService } from './modules/auth/totp.service';
 import { TransactionRunner } from './infrastructure/database/transaction.runner';
+import {
+  OBSERVABILITY,
+  ObservabilityMetricsController,
+  createObservability,
+} from '@ticket-booking/observability';
 
 @Module({
   imports: [InfrastructureModule, HealthModule],
-  controllers: [AuthController, JwksController],
+  controllers: [AuthController, JwksController, ObservabilityMetricsController],
   providers: [
     AuthService,
     IdentityRepository,
@@ -26,6 +31,10 @@ import { TransactionRunner } from './infrastructure/database/transaction.runner'
     PasswordService,
     TotpService,
     TransactionRunner,
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('identity-service'),
+    },
     LocalEmailDeliveryAdapter,
     {
       provide: EMAIL_DELIVERY,

@@ -1,0 +1,166 @@
+name: Production CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Reviewed branch, tag, or commit to deploy
+        required: true
+        type: string
+      gateway_url:
+        description: Public Gateway base URL for post-deploy smoke checks
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.14.0'
+  PNPM_VERSION: '10.18.0'
+
+concurrency:
+  group: production-cd
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate reviewed commit
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out reviewed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            backend/pnpm-lock.yaml
+            frontend/pnpm-lock.yaml
+
+      - name: Validate backend
+        working-directory: backend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run ci
+
+      - name: Validate frontend
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run ci
+
+      - name: Check tracked-file secrets
+        run: node .github/scripts/check-secrets.mjs
+
+  migrate:
+    name: Migrate ${{ matrix.service }}
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - service: identity
+            database_name: identity_db
+            database_secret: IDENTITY_DATABASE_URL
+          - service: catalog
+            database_name: catalog_db
+            database_secret: CATALOG_DATABASE_URL
+          - service: booking
+            database_name: booking_db
+            database_secret: BOOKING_DATABASE_URL
+          - service: payment
+            database_name: payment_db
+            database_secret: PAYMENT_DATABASE_URL
+          - service: ticket
+            database_name: ticket_db
+            database_secret: TICKET_DATABASE_URL
+          - service: notification
+            database_name: notification_db
+            database_secret: NOTIFICATION_DATABASE_URL
+    steps:
+      - name: Check out reviewed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run owning service migration job
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets[matrix.database_secret] }}
+          MIGRATION_SERVICE: ${{ matrix.service }}
+          MIGRATION_DATABASE_NAME: ${{ matrix.database_name }}
+        run: GITHUB_SHA="$(git rev-parse HEAD)" node scripts/run-migration-job.mjs
+
+  deploy:
+    name: Deploy reviewed commit
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger backend deployments
+        env:
+          IDENTITY_HOOK: ${{ secrets.IDENTITY_DEPLOY_HOOK }}
+          CATALOG_HOOK: ${{ secrets.CATALOG_DEPLOY_HOOK }}
+          BOOKING_HOOK: ${{ secrets.BOOKING_DEPLOY_HOOK }}
+          PAYMENT_HOOK: ${{ secrets.PAYMENT_DEPLOY_HOOK }}
+          TICKET_HOOK: ${{ secrets.TICKET_DEPLOY_HOOK }}
+          NOTIFICATION_HOOK: ${{ secrets.NOTIFICATION_DEPLOY_HOOK }}
+        run: |
+          for hook in "$IDENTITY_HOOK" "$CATALOG_HOOK" "$BOOKING_HOOK" "$PAYMENT_HOOK" "$TICKET_HOOK" "$NOTIFICATION_HOOK"; do
+            test -n "$hook"
+            curl --fail-with-body --silent --show-error --request POST "$hook"
+          done
+
+      - name: Trigger frontend deployment
+        env:
+          FRONTEND_HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK }}
+        run: |
+          test -n "$FRONTEND_HOOK"
+          curl --fail-with-body --silent --show-error --request POST "$FRONTEND_HOOK"
+
+      - name: Wait for Gateway health
+        env:
+          GATEWAY_URL: ${{ inputs.gateway_url }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail-with-body --silent --show-error "$GATEWAY_URL/health"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Gateway health check did not become ready"
+          exit 1
+
+      - name: Check Gateway readiness
+        env:
+          GATEWAY_URL: ${{ inputs.gateway_url }}
+        run: curl --fail-with-body --silent --show-error "$GATEWAY_URL/ready"

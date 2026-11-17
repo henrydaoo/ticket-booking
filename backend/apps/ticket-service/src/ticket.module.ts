@@ -10,9 +10,14 @@ import { TicketRepository } from './tickets/ticket.repository';
 import { TicketService } from './tickets/ticket.service';
 import { CheckInRepository } from './tickets/check-in.repository';
 import { TicketTransactionRunner } from './transaction.runner';
+import {
+  OBSERVABILITY,
+  ObservabilityMetricsController,
+  createObservability,
+} from '@ticket-booking/observability';
 
 @Module({
-  controllers: [HealthController, TicketController],
+  controllers: [HealthController, TicketController, ObservabilityMetricsController],
   providers: [
     { provide: TICKET_CONFIG, useFactory: loadTicketConfig },
     {
@@ -37,6 +42,10 @@ import { TicketTransactionRunner } from './transaction.runner';
     TicketService,
     TicketConsumerLifecycle,
     TicketOutboxLifecycle,
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('ticket-service'),
+    },
   ],
 })
 export class TicketModule {}

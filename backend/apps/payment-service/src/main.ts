@@ -21,11 +21,19 @@ import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationWorker } from './reconciliation.worker';
 import { RefundRepository } from './refund.repository';
 import { RefundService } from './refund.service';
+import {
+  OBSERVABILITY,
+  HttpMetricsInterceptor,
+  ObservabilityMetricsController,
+  PinoNestLogger,
+  createObservability,
+  startTelemetry,
+} from '@ticket-booking/observability';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, PaymentController],
+  controllers: [HealthController, PaymentController, ObservabilityMetricsController],
   providers: [
     { provide: PAYMENT_CONFIG, useFactory: loadPaymentConfig },
     {
@@ -61,15 +69,24 @@ loadDotenv({ path: join(__dirname, '../.env') });
     ReconciliationWorker,
     RefundRepository,
     RefundService,
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('payment-service'),
+    },
   ],
 })
 class PaymentModule {}
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(PaymentModule, { logger: ['log', 'warn', 'error'] });
+  const telemetry = startTelemetry('payment-service');
+  const app = await NestFactory.create(PaymentModule, { logger: false });
+  const observability = app.get(OBSERVABILITY);
+  app.useLogger(new PinoNestLogger(observability.logger));
+  app.useGlobalInterceptors(new HttpMetricsInterceptor(observability));
   const config = app.get(PAYMENT_CONFIG) as ReturnType<typeof loadPaymentConfig>;
   app.use(correlationIdMiddleware);
   await app.listen(config.port);
+  process.once('SIGTERM', () => void telemetry?.shutdown());
 }
 
 void bootstrap();

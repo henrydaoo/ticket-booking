@@ -52,7 +52,45 @@ services:
       retries: 12
       start_period: 20s
 
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    restart: unless-stopped
+    ports:
+      - "3007:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.64
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
 volumes:
   postgres-data:
   kafka-data:
+  prometheus-data:
+  grafana-data:
 

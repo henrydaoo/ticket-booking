@@ -37,6 +37,10 @@ The volume removal command is destructive for local database and Kafka data.
 |---|---:|---|
 | PostgreSQL | 5432 | One local server hosting six independent service databases |
 | Kafka | 9092 | Local event streaming broker |
+| Prometheus | 9090 | Metrics collection |
+| Grafana | 3007 | Metrics dashboards |
+| Jaeger UI | 16686 | Trace visualization |
+| Jaeger OTLP HTTP | 4318 | Trace ingestion |
 
 PostgreSQL databases and owning credentials:
 

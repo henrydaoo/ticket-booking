@@ -2,7 +2,8 @@
   "name": "@ticket-booking/backend",
   "private": true,
   "scripts": {
-    "build": "pnpm run build:config && pnpm run build:observability && pnpm run build:event-recovery && pnpm run build:apps",
+    "build": "pnpm run build:shared && pnpm run build:apps",
+    "build:shared": "pnpm run build:config && pnpm run build:observability && pnpm run build:event-recovery",
     "build:config": "pnpm --filter @ticket-booking/config run build",
     "build:observability": "pnpm --filter @ticket-booking/observability run build",
     "build:event-recovery": "pnpm --filter @ticket-booking/event-recovery run build",
@@ -16,7 +17,7 @@
     "verify:services": "node scripts/verify-services.mjs",
     "replay:kafka-dlq": "node scripts/replay-kafka-dlq.mjs",
     "replay:notification-dlq": "node scripts/replay-notification-dlq.mjs",
-    "ci": "pnpm run lint && pnpm run build:config && pnpm run typecheck && pnpm run verify:services && pnpm run build && pnpm run test:unit"
+    "ci": "pnpm run lint && pnpm run build:shared && pnpm run typecheck && pnpm run verify:services && pnpm run build:apps && pnpm run test:unit"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

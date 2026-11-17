@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { config as loadDotenv } from 'dotenv';
 import { Kafka } from 'kafkajs';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 import { Pool } from 'pg';
 import { BOOKING_CONFIG, loadBookingConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
@@ -21,12 +22,26 @@ import { BookingController } from './booking/booking.controller';
 import { BookingRepository } from './booking/booking.repository';
 import { BookingService } from './booking/booking.service';
 import { PaymentOrchestrator } from './booking/payment-orchestrator';
+import { BookingPaymentClient } from './booking/payment-client';
 import { BookingOutboxLifecycle } from './booking/outbox.lifecycle';
+import {
+  OBSERVABILITY,
+  HttpMetricsInterceptor,
+  ObservabilityMetricsController,
+  PinoNestLogger,
+  createObservability,
+  startTelemetry,
+} from '@ticket-booking/observability';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, ReservationController, BookingController],
+  controllers: [
+    HealthController,
+    ReservationController,
+    BookingController,
+    ObservabilityMetricsController,
+  ],
   providers: [
     {
       provide: BOOKING_CONFIG,
@@ -48,6 +63,11 @@ loadDotenv({ path: join(__dirname, '../.env') });
         }),
       inject: [BOOKING_CONFIG],
     },
+    {
+      provide: KafkaDeadLetterPublisher,
+      useFactory: (kafka: Kafka) => new KafkaDeadLetterPublisher(kafka, 'booking-service'),
+      inject: [Kafka],
+    },
     TransactionRunner,
     BookingInventoryRepository,
     InventoryInitializer,
@@ -57,21 +77,31 @@ loadDotenv({ path: join(__dirname, '../.env') });
     BookingRepository,
     BookingService,
     PaymentOrchestrator,
+    BookingPaymentClient,
     BookingOutboxLifecycle,
     KafkaConsumerLifecycle,
     BookingWorkerLifecycle,
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('booking-service'),
+    },
   ],
 })
 class BookingModule {}
 
 async function bootstrap(): Promise<void> {
+  const telemetry = startTelemetry('booking-service');
   const app = await NestFactory.create(BookingModule, {
-    logger: ['log', 'warn', 'error'],
+    logger: false,
   });
+  const observability = app.get(OBSERVABILITY);
+  app.useLogger(new PinoNestLogger(observability.logger));
+  app.useGlobalInterceptors(new HttpMetricsInterceptor(observability));
   const config = app.get(BOOKING_CONFIG) as ReturnType<typeof loadBookingConfig>;
 
   app.use(correlationIdMiddleware);
   await app.listen(config.port);
+  process.once('SIGTERM', () => void telemetry?.shutdown());
 }
 
 void bootstrap();

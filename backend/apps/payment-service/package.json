@@ -13,6 +13,8 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@ticket-booking/config": "workspace:*",
+    "@ticket-booking/event-recovery": "workspace:*",
+    "@ticket-booking/observability": "workspace:*",
     "dotenv": "^16.4.7",
     "kafkajs": "^2.2.4",
     "pg": "^8.13.3",

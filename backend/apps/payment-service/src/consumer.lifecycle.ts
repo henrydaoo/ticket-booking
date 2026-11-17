@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { Consumer, Kafka } from 'kafkajs';
 import { PAYMENT_CONFIG, PaymentConfig } from './config';
 import { RefundService } from './refund.service';
+import { RefundRequestedEvent } from './refund.service';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 
 @Injectable()
 export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
@@ -13,6 +15,7 @@ export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
     kafka: Kafka,
     @Inject(PAYMENT_CONFIG) private readonly config: PaymentConfig,
     private readonly refunds: RefundService,
+    private readonly deadLetter: KafkaDeadLetterPublisher,
   ) {
     this.consumer = kafka.consumer({ groupId: config.kafkaGroupId });
   }
@@ -23,9 +26,26 @@ export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
       this.connected = true;
       await this.consumer.subscribe({ topic: 'payment.refund-requested.v1', fromBeginning: true });
       void this.consumer.run({
-        eachMessage: async ({ message }) => {
-          if (!message.value) throw new Error('Received empty RefundRequested message');
-          await this.refunds.process(JSON.parse(message.value.toString('utf8')));
+        eachMessage: async ({ topic, partition, message }) => {
+          const raw = message.value?.toString('utf8');
+          let payload: unknown = null;
+          try {
+            if (!raw) throw new Error('Received empty RefundRequested message');
+            payload = JSON.parse(raw) as unknown;
+            await this.refunds.process(payload as RefundRequestedEvent);
+          } catch (error) {
+            await this.deadLetter.publish({
+              sourceTopic: topic,
+              sourcePartition: partition,
+              sourceOffset: message.offset,
+              error,
+              payload,
+            });
+            this.logger.error(
+              `Kafka event moved to ${topic}.dlq.v1`,
+              error instanceof Error ? error.stack : String(error),
+            );
+          }
         },
       }).catch((error: unknown) => {
         this.logger.error(
@@ -43,6 +63,7 @@ export class PaymentConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     if (this.connected) await this.consumer.disconnect();
     this.connected = false;
+    await this.deadLetter.disconnect();
   }
 
   isConnected(): boolean {

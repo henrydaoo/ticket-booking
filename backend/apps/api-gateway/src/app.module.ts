@@ -6,6 +6,11 @@ import { BookingModule } from './modules/booking/booking.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { TicketModule } from './modules/ticket/ticket.module';
 import { HealthController } from './health.controller';
+import {
+  OBSERVABILITY,
+  ObservabilityMetricsController,
+  createObservability,
+} from '@ticket-booking/observability';
 
 @Module({
   imports: [
@@ -16,6 +21,12 @@ import { HealthController } from './health.controller';
     PaymentModule,
     TicketModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, ObservabilityMetricsController],
+  providers: [
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('api-gateway'),
+    },
+  ],
 })
 export class AppModule {}

@@ -117,11 +117,24 @@ export class VnpayProvider implements PaymentProviderPort {
         ...signed,
         vnp_SecureHash: vnpaySignature(signed, this.config.vnpayHashSecret),
       });
-      const response = await fetch(this.config.vnpayApiUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: query.toString(),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5_000);
+      let response: Response;
+      try {
+        response = await fetch(this.config.vnpayApiUrl, {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: query.toString(),
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          throw new Error('PAYMENT_PROVIDER_TIMEOUT');
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
       if (!response.ok) throw new Error('PROVIDER_UNAVAILABLE');
       const text = await response.text();
       return Object.fromEntries(new URLSearchParams(text));

@@ -91,4 +91,20 @@ export class BookingController {
       body,
     );
   }
+
+  @Post('bookings/:bookingId/payment')
+  initiatePayment(
+    @Req() request: Request,
+    @Param('bookingId') bookingId: string,
+    @Body() body: unknown,
+    @Headers(CORRELATION_ID_HEADER) correlationId?: string,
+  ): Promise<unknown> {
+    return this.proxy.forward(
+      `/bookings/${encodeURIComponent(bookingId)}/payment`,
+      'POST',
+      correlationId,
+      principalFromRequest(request),
+      body,
+    );
+  }
 }

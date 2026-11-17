@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { Consumer, Kafka } from 'kafkajs';
 import { TICKET_CONFIG, TicketConfig } from './config';
 import { TicketService } from './tickets/ticket.service';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 
 export const BOOKING_CONFIRMED_TOPIC = 'booking.booking-confirmed.v1';
 
@@ -15,6 +16,7 @@ export class TicketConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
     kafka: Kafka,
     @Inject(TICKET_CONFIG) private readonly config: TicketConfig,
     private readonly tickets: TicketService,
+    private readonly deadLetter: KafkaDeadLetterPublisher,
   ) {
     this.consumer = kafka.consumer({ groupId: config.kafkaGroupId });
   }
@@ -27,12 +29,27 @@ export class TicketConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
         fromBeginning: true,
       });
       void this.consumer.run({
-        eachMessage: async ({ topic, message }) => {
+        eachMessage: async ({ topic, partition, message }) => {
           if (topic !== BOOKING_CONFIRMED_TOPIC) return;
-          if (!message.value) throw new Error(`Received empty Kafka message from ${topic}`);
-          await this.tickets.processBookingConfirmed(
-            JSON.parse(message.value.toString('utf8')) as unknown,
-          );
+          const raw = message.value?.toString('utf8');
+          let payload: unknown = null;
+          try {
+            if (!raw) throw new Error(`Received empty Kafka message from ${topic}`);
+            payload = JSON.parse(raw) as unknown;
+            await this.tickets.processBookingConfirmed(payload);
+          } catch (error) {
+            await this.deadLetter.publish({
+              sourceTopic: topic,
+              sourcePartition: partition,
+              sourceOffset: message.offset,
+              error,
+              payload,
+            });
+            this.logger.error(
+              `Kafka event moved to ${topic}.dlq.v1`,
+              error instanceof Error ? error.stack : String(error),
+            );
+          }
         },
       }).catch((error: unknown) => {
         this.logger.error(
@@ -54,6 +71,7 @@ export class TicketConsumerLifecycle implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     if (this.connected) await this.consumer.disconnect();
     this.connected = false;
+    await this.deadLetter.disconnect();
   }
 
   isConnected(): boolean {

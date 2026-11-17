@@ -8,6 +8,7 @@ import {
 export type PaymentConfig = ServiceConfig & {
   databaseUrl: string;
   bookingServiceUrl: string;
+  internalServiceSecret: string;
   kafkaBrokers: string[];
   kafkaClientId: string;
   kafkaGroupId: string;
@@ -54,6 +55,7 @@ export function loadPaymentConfig(environment: NodeJS.ProcessEnv = process.env):
     ...loadServiceConfig(environment),
     databaseUrl: required(environment, 'DATABASE_URL'),
     bookingServiceUrl: required(environment, 'BOOKING_SERVICE_URL').replace(/\/+$/, ''),
+    internalServiceSecret: required(environment, 'INTERNAL_SERVICE_SECRET'),
     kafkaBrokers: brokers,
     kafkaClientId: required(environment, 'KAFKA_CLIENT_ID'),
     kafkaGroupId: required(environment, 'KAFKA_GROUP_ID'),

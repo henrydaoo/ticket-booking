@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { config as loadDotenv } from 'dotenv';
 import { Kafka } from 'kafkajs';
+import { KafkaDeadLetterPublisher } from '@ticket-booking/event-recovery';
 import { Pool } from 'pg';
 import { PAYMENT_CONFIG, loadPaymentConfig } from './config';
 import { correlationIdMiddleware } from './correlation-id.middleware';
@@ -15,16 +16,25 @@ import { PaymentRepository } from './payment.repository';
 import { BookingClient } from './booking.client';
 import { PaymentService } from './payment.service';
 import { VnpayProvider } from './provider/vnpay.provider';
+import { ResilientPaymentProvider } from './provider/resilient-payment.provider';
 import { PaymentOutboxLifecycle } from './outbox.lifecycle';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationWorker } from './reconciliation.worker';
 import { RefundRepository } from './refund.repository';
 import { RefundService } from './refund.service';
+import {
+  OBSERVABILITY,
+  HttpMetricsInterceptor,
+  ObservabilityMetricsController,
+  PinoNestLogger,
+  createObservability,
+  startTelemetry,
+} from '@ticket-booking/observability';
 
 loadDotenv({ path: join(__dirname, '../.env') });
 
 @Module({
-  controllers: [HealthController, PaymentController],
+  controllers: [HealthController, PaymentController, ObservabilityMetricsController],
   providers: [
     { provide: PAYMENT_CONFIG, useFactory: loadPaymentConfig },
     {
@@ -43,27 +53,46 @@ loadDotenv({ path: join(__dirname, '../.env') });
         }),
       inject: [PAYMENT_CONFIG],
     },
+    {
+      provide: KafkaDeadLetterPublisher,
+      useFactory: (kafka: Kafka) => new KafkaDeadLetterPublisher(kafka, 'payment-service'),
+      inject: [Kafka],
+    },
     PaymentConsumerLifecycle,
     TransactionRunner,
     PaymentRepository,
     BookingClient,
     PaymentService,
     VnpayProvider,
-    { provide: 'PAYMENT_PROVIDER', useExisting: VnpayProvider },
+    {
+      provide: ResilientPaymentProvider,
+      useFactory: (provider: VnpayProvider) => new ResilientPaymentProvider(provider),
+      inject: [VnpayProvider],
+    },
+    { provide: 'PAYMENT_PROVIDER', useExisting: ResilientPaymentProvider },
     PaymentOutboxLifecycle,
     ReconciliationRepository,
     ReconciliationWorker,
     RefundRepository,
     RefundService,
+    {
+      provide: OBSERVABILITY,
+      useFactory: () => createObservability('payment-service'),
+    },
   ],
 })
 class PaymentModule {}
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(PaymentModule, { logger: ['log', 'warn', 'error'] });
+  const telemetry = startTelemetry('payment-service');
+  const app = await NestFactory.create(PaymentModule, { logger: false });
+  const observability = app.get(OBSERVABILITY);
+  app.useLogger(new PinoNestLogger(observability.logger));
+  app.useGlobalInterceptors(new HttpMetricsInterceptor(observability));
   const config = app.get(PAYMENT_CONFIG) as ReturnType<typeof loadPaymentConfig>;
   app.use(correlationIdMiddleware);
   await app.listen(config.port);
+  process.once('SIGTERM', () => void telemetry?.shutdown());
 }
 
 void bootstrap();

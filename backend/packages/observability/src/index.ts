@@ -64,6 +64,43 @@ export interface Observability {
   dlqMessages: Gauge<'component'>;
 }
 
+export function parseOtelHeaders(
+  value = process.env.OTEL_EXPORTER_OTLP_HEADERS,
+): Record<string, string> | undefined {
+  const raw = value?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  const headers: Record<string, string> = {};
+  for (const entry of raw.split(',')) {
+    const separator = entry.indexOf('=');
+    if (separator <= 0) {
+      throw new Error(
+        'OTEL_EXPORTER_OTLP_HEADERS must contain comma-separated key=value pairs',
+      );
+    }
+
+    const key = entry.slice(0, separator).trim();
+    const encodedValue = entry.slice(separator + 1).trim();
+    if (!key || !encodedValue) {
+      throw new Error(
+        'OTEL_EXPORTER_OTLP_HEADERS must contain non-empty key and value pairs',
+      );
+    }
+
+    try {
+      headers[key] = decodeURIComponent(encodedValue);
+    } catch {
+      throw new Error(
+        `OTEL_EXPORTER_OTLP_HEADERS contains an invalid encoded value for ${key}`,
+      );
+    }
+  }
+
+  return headers;
+}
+
 export function createObservability(service: string): Observability {
   const registry = new Registry();
   collectDefaultMetrics({ register: registry, prefix: 'ticket_booking_' });
@@ -202,11 +239,14 @@ export function startTelemetry(service: string): NodeSDK | undefined {
     return undefined;
   }
 
+  process.env.OTEL_SERVICE_NAME = service;
   const sdk = new NodeSDK({
-    traceExporter: new OTLPTraceExporter({ url: `${endpoint}/v1/traces` }),
+    traceExporter: new OTLPTraceExporter({
+      url: `${endpoint.replace(/\/+$/, '')}/v1/traces`,
+      headers: parseOtelHeaders(),
+    }),
     instrumentations: [getNodeAutoInstrumentations()],
   });
-  process.env.OTEL_SERVICE_NAME = service;
   void sdk.start();
   return sdk;
 }

@@ -1,0 +1,123 @@
+// Production Grafana Cloud pipeline.
+//
+// Provide the referenced values as Alloy environment variables. Do not put
+// Grafana Cloud tokens or service metrics tokens in this file.
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_PROMETHEUS_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_PROMETHEUS_USER")
+      password = sys.env("GRAFANA_CLOUD_PROMETHEUS_TOKEN")
+    }
+  }
+}
+
+prometheus.scrape "gateway" {
+  targets = [{
+    "__address__" = sys.env("GATEWAY_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("GATEWAY_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "identity" {
+  targets = [{
+    "__address__" = sys.env("IDENTITY_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("IDENTITY_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "catalog" {
+  targets = [{
+    "__address__" = sys.env("CATALOG_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("CATALOG_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "booking" {
+  targets = [{
+    "__address__" = sys.env("BOOKING_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("BOOKING_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "payment" {
+  targets = [{
+    "__address__" = sys.env("PAYMENT_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("PAYMENT_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "ticket" {
+  targets = [{
+    "__address__" = sys.env("TICKET_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("TICKET_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.scrape "notification" {
+  targets = [{
+    "__address__" = sys.env("NOTIFICATION_METRICS_TARGET"),
+  }]
+  metrics_path = "/metrics"
+  scheme = "https"
+  http_headers = {
+    "x-metrics-token" = [sys.env("NOTIFICATION_METRICS_TOKEN")],
+  }
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  client_auth {
+    username = sys.env("GRAFANA_CLOUD_OTLP_USER")
+    password = sys.env("GRAFANA_CLOUD_OTLP_TOKEN")
+  }
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    auth = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
+
+otelcol.receiver.otlp "applications" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}

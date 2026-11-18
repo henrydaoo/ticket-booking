@@ -125,9 +125,12 @@ jobs:
     needs: migrate
     runs-on: ubuntu-latest
     environment: production
+    env:
+      FRONTEND_HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK }}
     steps:
       - name: Trigger backend deployments
         env:
+          GATEWAY_HOOK: ${{ secrets.GATEWAY_DEPLOY_HOOK }}
           IDENTITY_HOOK: ${{ secrets.IDENTITY_DEPLOY_HOOK }}
           CATALOG_HOOK: ${{ secrets.CATALOG_DEPLOY_HOOK }}
           BOOKING_HOOK: ${{ secrets.BOOKING_DEPLOY_HOOK }}
@@ -135,16 +138,18 @@ jobs:
           TICKET_HOOK: ${{ secrets.TICKET_DEPLOY_HOOK }}
           NOTIFICATION_HOOK: ${{ secrets.NOTIFICATION_DEPLOY_HOOK }}
         run: |
-          for hook in "$IDENTITY_HOOK" "$CATALOG_HOOK" "$BOOKING_HOOK" "$PAYMENT_HOOK" "$TICKET_HOOK" "$NOTIFICATION_HOOK"; do
+          for hook_name in GATEWAY_HOOK IDENTITY_HOOK CATALOG_HOOK BOOKING_HOOK PAYMENT_HOOK TICKET_HOOK NOTIFICATION_HOOK; do
+            hook="${!hook_name}"
+            test -n "$hook" || { echo "Missing required deploy hook: $hook_name"; exit 1; }
+          done
+          for hook in "$GATEWAY_HOOK" "$IDENTITY_HOOK" "$CATALOG_HOOK" "$BOOKING_HOOK" "$PAYMENT_HOOK" "$TICKET_HOOK" "$NOTIFICATION_HOOK"; do
             test -n "$hook"
             curl --fail-with-body --silent --show-error --request POST "$hook"
           done
 
       - name: Trigger frontend deployment
-        env:
-          FRONTEND_HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK }}
+        if: ${{ env.FRONTEND_HOOK != '' }}
         run: |
-          test -n "$FRONTEND_HOOK"
           curl --fail-with-body --silent --show-error --request POST "$FRONTEND_HOOK"
 
       - name: Wait for Gateway health

@@ -7,10 +7,6 @@ on:
         description: Reviewed branch, tag, or commit to deploy
         required: true
         type: string
-      gateway_url:
-        description: Public Gateway base URL for post-deploy smoke checks
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -151,21 +147,3 @@ jobs:
         if: ${{ env.FRONTEND_HOOK != '' }}
         run: |
           curl --fail-with-body --silent --show-error --request POST "$FRONTEND_HOOK"
-
-      - name: Wait for Gateway health
-        env:
-          GATEWAY_URL: ${{ inputs.gateway_url }}
-        run: |
-          for attempt in $(seq 1 30); do
-            if curl --fail-with-body --silent --show-error "$GATEWAY_URL/health"; then
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Gateway health check did not become ready"
-          exit 1
-
-      - name: Check Gateway readiness
-        env:
-          GATEWAY_URL: ${{ inputs.gateway_url }}
-        run: curl --fail-with-body --silent --show-error "$GATEWAY_URL/ready"

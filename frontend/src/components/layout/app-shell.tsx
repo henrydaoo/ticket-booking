@@ -25,13 +25,6 @@ const ROLE_HOME: Record<Exclude<RoleKey, 'GUEST'>, string> = {
   PLATFORM_ADMIN: '/admin',
 };
 
-const ROLE_LOGIN: Record<Exclude<RoleKey, 'GUEST'>, string> = {
-  CUSTOMER: '/login',
-  CINEMA_STAFF: '/login',
-  CINEMA_MANAGER: '/login',
-  PLATFORM_ADMIN: '/admin/login',
-};
-
 function resolveRole(roles: string[]): RoleKey {
   if (roles.includes('PLATFORM_ADMIN')) return 'PLATFORM_ADMIN';
   if (roles.includes('CINEMA_MANAGER')) return 'CINEMA_MANAGER';
@@ -58,11 +51,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     ...(role === 'CUSTOMER' ? [{ label: 'Vé Của Tôi', short: 'Vé', href: '/account/bookings', icon: '🎫' }] : []),
   ];
   const opsLabel = role === 'CINEMA_STAFF' ? 'Cổng Soát Vé' : role === 'CINEMA_MANAGER' ? 'Quản Lý Rạp' : 'Quản Trị Hệ Thống';
-
-  const handleRoleChange = (next: RoleKey) => {
-    if (next === role) return;
-    logoutMutation.mutate(next === 'GUEST' ? '/login' : ROLE_LOGIN[next]);
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#09090B] text-neutral-100 selection:bg-amber-500 selection:text-neutral-950">
@@ -96,17 +84,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-[#121215] px-1.5 py-1.5 text-xs shadow-inner sm:px-2">
-              <label className="mr-1 hidden whitespace-nowrap text-[11px] text-neutral-400 xl:inline" htmlFor="header-role-dropdown">Tài khoản:</label>
-              <select className="max-w-[85px] cursor-pointer truncate bg-transparent text-xs font-semibold text-amber-400 focus:outline-none sm:max-w-[130px] lg:max-w-none" disabled={logoutMutation.isPending} id="header-role-dropdown" onChange={(event) => handleRoleChange(event.target.value as RoleKey)} value={role}>
-                <option className="bg-[#121215] text-neutral-200" value="CUSTOMER">👤 Khách hàng</option>
-                <option className="bg-[#121215] text-neutral-200" value="CINEMA_STAFF">🎫 Soát vé</option>
-                <option className="bg-[#121215] text-neutral-200" value="CINEMA_MANAGER">👔 Quản lý</option>
-                <option className="bg-[#121215] text-neutral-200" value="PLATFORM_ADMIN">⚡ Quản trị</option>
-                <option className="bg-[#121215] font-bold text-amber-300" value="GUEST">🚪 Khách vãng lai (Chưa đăng nhập)</option>
-              </select>
-            </div>
-
             {isAuth && role !== 'CUSTOMER' ? (
               <Link className="hidden shrink-0 items-center gap-1.5 rounded-xl border border-amber-500/35 bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/25 md:inline-flex" href={ROLE_HOME[role]}>
                 <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400" />

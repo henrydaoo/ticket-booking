@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSyncExternalStore } from 'react';
-import { ApiError } from '@/lib/api-client/client';
+import { userFacingApiError } from '@/lib/api-client/client';
 import { readSession, subscribeToSession } from '@/lib/auth/auth-boundary';
 import { useBranchesQuery, useCreateShowtimeMutation, useMoviesQuery, usePublishShowtimeMutation, useScreensQuery, useShowtimesQuery } from '@/lib/catalog/catalog-queries';
 import { buildDates, dayRange, fmtDuration, fmtTime } from '@/lib/moonlight-format';
@@ -50,7 +50,7 @@ export function ManagerPage({ view = 'showtimes' }: { view?: 'showtimes' | 'scre
       setModal(null);
       form.reset();
     } catch (caught) {
-      setFormError(caught instanceof ApiError ? caught.message : 'Không thể tạo suất chiếu. Vui lòng thử lại.');
+      setFormError(userFacingApiError(caught, 'Không thể tạo suất chiếu. Vui lòng thử lại.'));
     }
   });
 
@@ -110,7 +110,7 @@ export function ManagerPage({ view = 'showtimes' }: { view?: 'showtimes' | 'scre
               );
             })}
           </div>
-          {publish.error ? <p className="text-xs text-rose-300" role="alert">{publish.error instanceof ApiError ? publish.error.message : 'Không thể xuất bản suất chiếu.'}</p> : null}
+          {publish.error ? <p className="text-xs text-rose-300" role="alert">{userFacingApiError(publish.error, 'Không thể xuất bản suất chiếu.')}</p> : null}
         </div>
       ) : (
         <div className="space-y-6">

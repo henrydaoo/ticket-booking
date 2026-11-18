@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ApiError } from '@/lib/api-client/client';
+import { userFacingApiError } from '@/lib/api-client/client';
 import type { Branch, SeatType } from '@/lib/catalog/catalog-client';
 import { useCreateScreenMutation, useUpdateScreenLayoutMutation, useUpdateScreenPricesMutation } from '@/lib/catalog/catalog-queries';
 import { OPS_INPUT, OPS_LABEL, OpsModal } from './ops-ui';
@@ -51,7 +51,7 @@ export function CreateScreenModal({ branches, defaultBranchId, onClose }: { bran
       await updatePrices.mutateAsync({ id: screen.id, prices: [{ seatType: 'STANDARD', priceVnd: values.priceStandard }, { seatType: 'VIP', priceVnd: values.priceVip }, { seatType: 'COUPLE', priceVnd: values.priceCouple }] });
       onClose();
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Không thể tạo phòng chiếu. Vui lòng thử lại.');
+      setError(userFacingApiError(caught, 'Không thể tạo phòng chiếu. Vui lòng thử lại.'));
     }
   });
   const busy = createScreen.isPending || updateLayout.isPending || updatePrices.isPending;

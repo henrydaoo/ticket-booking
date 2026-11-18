@@ -4,7 +4,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ApiError } from '@/lib/api-client/client';
+import { userFacingApiError } from '@/lib/api-client/client';
 import { readSession, subscribeToSession } from '@/lib/auth/auth-boundary';
 import { useBranchesQuery, useCinemaQuery, useCreateBranchMutation, useCreateCinemaMutation, useCreateMovieMutation, useMoviesQuery, useScreensQuery, useUpdateMovieMutation } from '@/lib/catalog/catalog-queries';
 import { fmtDuration } from '@/lib/moonlight-format';
@@ -27,7 +27,7 @@ const movieSchema = z.object({
 const cinemaSchema = z.object({ name: z.string().trim().min(1, 'Vui lòng nhập tên cụm rạp.') });
 const branchSchema = z.object({ cinemaId: z.string().min(1, 'Vui lòng chọn cụm rạp.'), name: z.string().trim().min(1, 'Vui lòng nhập tên chi nhánh.'), address: z.string().trim().min(1, 'Vui lòng nhập địa chỉ.') });
 
-const errorText = (error: unknown) => (error instanceof ApiError ? error.message : 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.');
+const errorText = (error: unknown) => userFacingApiError(error, 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.');
 const FieldError = ({ message }: { message?: string }) => (message ? <span className="text-rose-300">{message}</span> : null);
 const Actions = ({ onCancel, pending, label }: { onCancel: () => void; pending: boolean; label: string }) => (
   <div className="flex justify-end gap-3 border-t border-white/10 pt-4">

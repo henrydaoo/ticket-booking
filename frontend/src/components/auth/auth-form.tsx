@@ -28,7 +28,17 @@ type AuthFormValues = z.infer<typeof authFormSchema>;
 type AuthMode = 'login' | 'register' | 'verify' | 'reset';
 
 function safeError(error: unknown): string {
-  if (error instanceof ApiError && error.status < 500) return error.message;
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return error.message.toLowerCase().includes('mfa')
+        ? 'Mã xác thực quản trị không hợp lệ hoặc chưa được cung cấp.'
+        : 'Email hoặc mật khẩu không đúng.';
+    }
+    if (error.status >= 500) return 'Dịch vụ đang tạm thời không khả dụng. Vui lòng thử lại sau.';
+    if (error.status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
+    if (error.status === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
+    if (error.status >= 400) return 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.';
+  }
   return 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.';
 }
 
@@ -58,18 +68,10 @@ function schemaForMode(mode: AuthMode) {
 const INPUT = 'w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 text-white focus:border-amber-400 focus:outline-none';
 const SUBMIT = 'w-full rounded-xl bg-amber-500 py-3.5 text-sm font-bold text-neutral-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60';
 
-const ROLE_CARDS = [
-  { key: 'CUSTOMER', title: '👤 Khách Hàng', tag: 'Đặt vé', sub: 'Xem phim & vé QR', hover: 'hover:border-amber-500/40', color: 'text-amber-400' },
-  { key: 'CINEMA_STAFF', title: '🎫 Soát Vé QR', tag: 'Tại rạp', sub: 'Cửa phòng chiếu', hover: 'hover:border-sky-500/40', color: 'text-sky-400' },
-  { key: 'CINEMA_MANAGER', title: '👔 Quản Lý Rạp', tag: 'Cụm rạp', sub: 'Suất, sơ đồ & sự cố', hover: 'hover:border-emerald-500/40', color: 'text-emerald-400' },
-  { key: 'PLATFORM_ADMIN', title: '⚡ Quản Trị Viên', tag: 'Toàn quốc', sub: 'Phim, chi nhánh, audit', hover: 'hover:border-purple-500/40', color: 'text-purple-400' },
-] as const;
-
 export function AuthForm({ mode, requireMfa = false }: { mode: AuthMode; requireMfa?: boolean }) {
   const router = useRouter();
   const [successMessage, setSuccessMessage] = useState('');
   const [mfaRequired, setMfaRequired] = useState(requireMfa);
-  const [roleHint, setRoleHint] = useState<(typeof ROLE_CARDS)[number]['key']>(requireMfa ? 'PLATFORM_ADMIN' : 'CUSTOMER');
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(schemaForMode(mode)),
     defaultValues: { email: '', password: '', mfaCode: '', token: '' },
@@ -186,27 +188,6 @@ export function AuthForm({ mode, requireMfa = false }: { mode: AuthMode; require
 
       {mode === 'login' ? (
         <div className="space-y-2.5 border-t border-white/10 pt-6">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Đăng Nhập Theo Vai Trò</span>
-            <span className="text-[10px] text-neutral-400">Chọn vai trò của bạn</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {ROLE_CARDS.map((card) => {
-              const body = (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className={`font-bold transition-transform group-hover:translate-x-0.5 ${card.color}`}>{card.title}</span>
-                    <span className="text-[10px] text-neutral-400">{card.tag}</span>
-                  </div>
-                  <span className="mt-1 block text-[10px] text-neutral-500">{card.sub}</span>
-                </>
-              );
-              const cls = `group rounded-xl border bg-neutral-950 p-3 text-left transition hover:bg-white/5 ${card.hover} ${roleHint === card.key ? 'border-white/30' : 'border-white/10'}`;
-              return card.key === 'PLATFORM_ADMIN'
-                ? <Link className={cls} href="/admin/login" key={card.key}>{body}</Link>
-                : <button className={cls} key={card.key} onClick={() => setRoleHint(card.key)} type="button">{body}</button>;
-            })}
-          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-neutral-400 sm:flex-row">

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ApiError } from '@/lib/api-client/client';
+import { ApiError, userFacingApiError } from '@/lib/api-client/client';
 import { useBookingMutation, useCancelReservationMutation, usePaymentMutation, useReservationMutation, useSeatMapQuery } from '@/lib/booking/booking-queries';
 import { useMovieQuery, useShowtimesQuery, useBranchesQuery, useScreensQuery } from '@/lib/catalog/catalog-queries';
 import { fmtVnd } from '@/lib/moonlight-format';
@@ -22,7 +22,7 @@ function messageFor(error: unknown, fallback: string): string {
       return 'Thời gian giữ chỗ đã kết thúc. Vui lòng chọn lại ghế.';
     }
     if (error.status === 409) return 'Một số ghế vừa được người khác đặt. Vui lòng xem lại sơ đồ ghế mới nhất.';
-    return error.message;
+    return userFacingApiError(error, fallback);
   }
   return fallback;
 }

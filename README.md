@@ -593,6 +593,7 @@ provided through deployment platform configuration and are not committed.
 ```text
 Reviewed commit
   -> CI, build, and secret scan
+  -> Build shared backend packages before each Render service
   -> Service-owned migration jobs
   -> Render/Vercel deployment hooks
   -> Health and readiness checks

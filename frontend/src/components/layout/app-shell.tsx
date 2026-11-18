@@ -25,13 +25,6 @@ const ROLE_HOME: Record<Exclude<RoleKey, 'GUEST'>, string> = {
   PLATFORM_ADMIN: '/admin',
 };
 
-const ROLE_LOGIN: Record<Exclude<RoleKey, 'GUEST'>, string> = {
-  CUSTOMER: '/login',
-  CINEMA_STAFF: '/login',
-  CINEMA_MANAGER: '/login',
-  PLATFORM_ADMIN: '/admin/login',
-};
-
 function resolveRole(roles: string[]): RoleKey {
   if (roles.includes('PLATFORM_ADMIN')) return 'PLATFORM_ADMIN';
   if (roles.includes('CINEMA_MANAGER')) return 'CINEMA_MANAGER';
@@ -58,11 +51,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     ...(role === 'CUSTOMER' ? [{ label: 'Vé Của Tôi', short: 'Vé', href: '/account/bookings', icon: '🎫' }] : []),
   ];
   const opsLabel = role === 'CINEMA_STAFF' ? 'Cổng Soát Vé' : role === 'CINEMA_MANAGER' ? 'Quản Lý Rạp' : 'Quản Trị Hệ Thống';
-
-  const handleRoleChange = (next: RoleKey) => {
-    if (next === role) return;
-    logoutMutation.mutate(next === 'GUEST' ? '/login' : ROLE_LOGIN[next]);
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#09090B] text-neutral-100 selection:bg-amber-500 selection:text-neutral-950">

@@ -68,18 +68,10 @@ function schemaForMode(mode: AuthMode) {
 const INPUT = 'w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 text-white focus:border-amber-400 focus:outline-none';
 const SUBMIT = 'w-full rounded-xl bg-amber-500 py-3.5 text-sm font-bold text-neutral-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60';
 
-const ROLE_CARDS = [
-  { key: 'CUSTOMER', title: '👤 Khách Hàng', tag: 'Đặt vé', sub: 'Xem phim & vé QR', hover: 'hover:border-amber-500/40', color: 'text-amber-400' },
-  { key: 'CINEMA_STAFF', title: '🎫 Soát Vé QR', tag: 'Tại rạp', sub: 'Cửa phòng chiếu', hover: 'hover:border-sky-500/40', color: 'text-sky-400' },
-  { key: 'CINEMA_MANAGER', title: '👔 Quản Lý Rạp', tag: 'Cụm rạp', sub: 'Suất, sơ đồ & sự cố', hover: 'hover:border-emerald-500/40', color: 'text-emerald-400' },
-  { key: 'PLATFORM_ADMIN', title: '⚡ Quản Trị Viên', tag: 'Toàn quốc', sub: 'Phim, chi nhánh, audit', hover: 'hover:border-purple-500/40', color: 'text-purple-400' },
-] as const;
-
 export function AuthForm({ mode, requireMfa = false }: { mode: AuthMode; requireMfa?: boolean }) {
   const router = useRouter();
   const [successMessage, setSuccessMessage] = useState('');
   const [mfaRequired, setMfaRequired] = useState(requireMfa);
-  const [roleHint, setRoleHint] = useState<(typeof ROLE_CARDS)[number]['key']>(requireMfa ? 'PLATFORM_ADMIN' : 'CUSTOMER');
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(schemaForMode(mode)),
     defaultValues: { email: '', password: '', mfaCode: '', token: '' },

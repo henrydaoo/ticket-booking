@@ -99,10 +99,8 @@ prometheus.scrape "notification" {
 }
 
 otelcol.auth.basic "grafana_cloud" {
-  client_auth {
-    username = sys.env("GRAFANA_CLOUD_OTLP_USER")
-    password = sys.env("GRAFANA_CLOUD_OTLP_TOKEN")
-  }
+  username = sys.env("GRAFANA_CLOUD_OTLP_USER")
+  password = sys.env("GRAFANA_CLOUD_OTLP_TOKEN")
 }
 
 otelcol.exporter.otlphttp "grafana_cloud" {
@@ -114,7 +112,7 @@ otelcol.exporter.otlphttp "grafana_cloud" {
 
 otelcol.receiver.otlp "applications" {
   http {
-    endpoint = "0.0.0.0:4318"
+    endpoint = "0.0.0.0:" + sys.env("PORT")
   }
 
   output {

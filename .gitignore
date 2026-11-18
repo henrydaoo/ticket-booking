@@ -45,3 +45,5 @@ desktop.ini
 !.vscode/extensions.json
 !.vscode/settings.json
 
+infrastructure/grafana-cloud/alloy.env
+infrastructure/grafana-cloud/config.alloy

@@ -18,6 +18,15 @@ export class ApiError extends Error {
   }
 }
 
+export function userFacingApiError(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) return fallback;
+  if (error.status === 401) return 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.';
+  if (error.status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
+  if (error.status === 404) return 'Không tìm thấy dữ liệu yêu cầu.';
+  if (error.status >= 500) return 'Dịch vụ đang tạm thời không khả dụng. Vui lòng thử lại sau.';
+  return fallback;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},

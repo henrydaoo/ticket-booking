@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ApiError } from '@/lib/api-client/client';
+import { ApiError, userFacingApiError } from '@/lib/api-client/client';
 import { readSession, subscribeToSession } from '@/lib/auth/auth-boundary';
 import { useCheckInMutation, useReverseCheckInMutation } from '@/lib/tickets/check-in-queries';
 import type { CheckInResponse } from '@/lib/tickets/check-in-client';
@@ -44,7 +44,7 @@ function messageForError(error: unknown, fallback: string): string {
     case 'CHECK_IN_NOT_FOUND':
       return 'Không tìm thấy bản ghi check-in.';
     default:
-      return error.status >= 500 ? 'Dịch vụ soát vé đang tạm thời không khả dụng.' : error.message || fallback;
+      return userFacingApiError(error, error.status >= 500 ? 'Dịch vụ soát vé đang tạm thời không khả dụng.' : fallback);
   }
 }
 
